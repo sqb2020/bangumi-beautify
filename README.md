@@ -1,6 +1,7 @@
 # Bangumi 美化脚本合集
 
-四款 Bangumi（bgm.tv）用户脚本，支持**油猴（Tampermonkey）**和 Bangumi 自带的**超合金组件**，无需额外浏览器插件。
+本脚本是在前辈代码的基础上修改而来的(musume_15)(musume_15)(musume_15)，已上传超合金组件等待审核中，[Github仓库]（https://github.com/sqb2020/bangumi-beautify.git），
+支持油猴（Tampermonkey）和 Bangumi 自带的超合金组件。
 
 ---
 
@@ -164,13 +165,5 @@
 
 ---
 
-## ⚠️ 注意事项
-
-- ② 和 ④ 是日历页**互斥**方案，只启用一个
-- ③ 首次使用需授权 `api.bgm.tv` 访问，受 Bangumi API 限频影响
-- 超合金组件不支持 `@grant` 声明，因此 ③（需要 `GM_xmlhttpRequest`）无法使用
-- 如遇到页面更新导致脚本失效，可在 [GitHub Issues](#) 反馈
-
----
 
 *Made with ❤️ for Bangumi.*
