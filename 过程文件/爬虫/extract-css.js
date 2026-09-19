@@ -4,13 +4,13 @@ const path = require('path');
 const root = path.resolve(__dirname, '..', '..');
 const out = {};
 
-// bg_custom：eval generateCSS 函数并调用
+// bg_custom：eval generateCSS 函数并调用（generateCSS 依赖外部的 getHeaderOpacity，测试桩：未配置）
 {
   const src = fs.readFileSync(path.join(root, 'bangumi_bg_custom.user.js'), 'utf8');
   const start = src.indexOf('function generateCSS');
   const end = src.indexOf('// ==================== 工具函数');
   let fnSrc = src.slice(start, end).replace(/\}\s*$/, '');
-  const generateCSS = eval('(' + fnSrc + '})');
+  const generateCSS = eval('const getHeaderOpacity = () => null;\n(' + fnSrc + '})');
   out['bg_custom'] = generateCSS('linear-gradient(to right, #fabbbb, #ee8292)', 1);
 }
 

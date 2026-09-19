@@ -11,6 +11,8 @@
      确保主内容区(.day-block)与侧边栏(SidePanel)视觉完全一致 */
   --bgc-blur: 12px;
   --bgc-saturate: 160%;
+  /* 头部（顶栏/导航）玻璃浓度：跟随整体 --7，或在配置面板自定义 */
+  --bgc-header-alpha: var(--7);
   color-scheme: light;
   --0: 0;
   --1: calc((1 * 0.1) / (1 + 1 * 0.1 - 0.1)); --2: calc((1 * 0.2) / (1 + 1 * 0.2 - 0.2)); --3: calc((1 * 0.30000000000000004) / (1 + 1 * 0.30000000000000004 - 0.30000000000000004)); --4: calc((1 * 0.4) / (1 + 1 * 0.4 - 0.4)); --5: calc((1 * 0.5) / (1 + 1 * 0.5 - 0.5));
@@ -68,21 +70,31 @@ a.epBtnWatched:hover { border: 1px solid #00A8FF !important; padding-top: 5px !i
 a.epBtnUnknown:hover, a.epBtnAir:hover { border: 1px solid #00A8FF !important; padding-top: 5px !important; background-color: #cddaed; transition: .5s; }
 a.epBtnToday:hover { padding-top: 5px !important; background-color: #a8e398; border: #28674e 1px solid; transition: .5s; }
 a.epBtnNA:hover { padding-top: 5px !important; background-color: #cac9c9; border: #28674e 1px solid; transition: .5s; }
-/* 集数悬停弹出层：不透明背景 + 高 z-index，防止被毛玻璃层遮挡或透出模糊 */
-.epv_popu_default { width: 90%; background: rgba(var(--bgc-glass),.97) !important; z-index: 99999 !important; position: relative; border-radius: 8px; box-shadow: 0 4px 24px rgba(0,0,0,.3); }
+/* 注意：不要给 .epv_popu_default 写任何样式！
+   它不是弹出层，而是 EpPopuVisualizer 脚本画在每只集数按钮内部的「评分热度条」
+   （原生 position:absolute; bottom:0; right:3px; height:3px，颜色由元素内联 style 提供）。
+   旧版曾把它当弹出层强改 position:relative + 白底 !important，
+   结果所有按钮里都顶出一条歪的白色胶囊、热度颜色也被盖掉。 */
 
 /* ==== 404 / 通用头部 ====
    原 .5/.6/.7 硬编码与下方 token 版重复且取值不一致（同页不同区域玻璃忽浓忽淡），已删除，
    统一由「首页样式优化」与「内页透明化」里的 var(--7)/var(--6) 规则承担 */
 
 /* ========== 首页样式优化 ========== */
-#headerNeue2 { background: rgba(var(--bgc-glass),var(--7)); border: none; box-shadow: none; }
+#headerNeue2 { background: rgba(var(--bgc-glass),var(--bgc-header-alpha)); border: none; box-shadow: none; }
 a.chl:hover, a.chl { transition: 0.5s; }
-/* 左侧中间容器透明化：消除 .halfPage / #prgManagerMain / #prgManagerHeader 的不透明背景，
-   使 .day-block 与 SidePanel 同为单层毛玻璃，左右视觉完全统一 */
+/* 左右玻璃统一：外层分组容器(.halfPage/.sideInner)保持透明，内容面板(.sidePanelHome)
+   与左侧 .day-block 用完全相同的参数（--4 底 + 共享 blur/saturate），左右同为「main+面板」双层毛玻璃。
+   旧版把 .sidePanelHome 整个置透明：右侧只剩 main 一层玻璃，与左侧双层视觉不一致
+   （深色下尤其明显——左侧两叠深色几乎不透图、右侧单层透出模糊图），且面板文字直接压在背景图上可读性差 */
 .halfPage.sort.ui-draggable { background: rgba(var(--bgc-glass),var(--0)); }
-.sidePanelHome { background: rgba(var(--bgc-glass),var(--0)); }
-#home_calendar { background: rgba(var(--bgc-glass),var(--6)); }
+.sidePanelHome {
+  background: rgba(var(--bgc-glass),var(--4));
+  -webkit-backdrop-filter: blur(var(--bgc-blur)) saturate(var(--bgc-saturate));
+  backdrop-filter: blur(var(--bgc-blur)) saturate(var(--bgc-saturate));
+  border-radius: 10px;
+}
+#home_calendar { background: rgba(var(--bgc-glass),var(--4)); }
 .clearit.week { border: none; }
 #prgManagerMain { background: rgba(var(--bgc-glass),var(--0)); }
 input.inputtext { background: rgba(var(--bgc-glass),var(--7)); }
@@ -101,7 +113,7 @@ textarea.quick { padding-top: 5px; background: rgba(var(--bgc-glass),var(--6)); 
 .line_odd, .line_even { background: rgba(var(--bgc-glass),var(--0)); border: none; }
 #footer #footerLinks { background: rgba(var(--bgc-glass),var(--6)); border-radius: 10px; }
 #columnTimelineInnerWrapper, #columnTimelineInnerWrapper ul.timelineTabs { background: rgba(var(--bgc-glass),var(--4)); }
-div.SidePanelMini.clearit { background: rgba(var(--bgc-glass),var(--6)) !important; }
+div.SidePanelMini.clearit { background: rgba(var(--bgc-glass),var(--4)) !important; }
 div.SidePanelMini.clearit.award2022 { background: rgba(var(--bgc-glass),var(--10)) !important; opacity: var(--6); }
 #columnTimelineInnerB { background-color: rgba(var(--bgc-glass),var(--4)); }
 #columnTimelineInnerB div.TsukkmiBox { background: rgba(var(--bgc-glass),var(--0)); }
@@ -127,7 +139,7 @@ ul.sideTpcList .row:nth-child(odd), ul.sideTpcList .row:nth-child(2n) { backgrou
 #columnIntroB div.loginPanel dt input { background: rgba(var(--bgc-glass),var(--5)); }
 textarea.quick:focus, textarea.reply:focus, textarea.reply { background: rgba(var(--bgc-glass),var(--5)) !important; }
 #navNeue2 #navMenuNeue li a.chl { background: rgba(var(--bgc-glass),var(--5)); }
-#anime-schedule-container { background: rgba(var(--bgc-glass),var(--5)); color: #343434; }
+#anime-schedule-container { background: rgba(var(--bgc-glass),var(--4)); color: #343434; }
 ul.sideTpcList .row:nth-child(odd), ul.sideTpcList .row:nth-child(2n), ul.timeline li, #prgManager { border: none; }
 /* #prgManager / .sort 均不加 backdrop-filter：
    .sort(.halfPage.sort.ui-draggable) 背景已透明，若再加 blur 会在左侧产生多余模糊层
@@ -354,6 +366,16 @@ ul#infobox li.sub, ul#infobox li.sub_section, ul#infobox li.sub_group { border: 
 ul#infobox li .tag { border: 1px solid #0084B4; }
 a.cover:hover img.cover { padding: 0; }
 
+/* ==== 头部底纹恢复与可读性 ====
+   上方「边框处理」清零列表把 #headerNeue2 / #headerSubject div.subjectNav / #footerLinks 的
+   底纹一并置成了全透明：顶部导航与页脚直接贴在锐利背景图上，文字可读性差。
+   在清零之后按统一玻璃参数恢复底纹（清零的 border:none 仍然生效） */
+#headerNeue2 { background: rgba(var(--bgc-glass), var(--bgc-header-alpha)); }
+#navNeue2 #navMenuNeue li a.chl { background: rgba(var(--bgc-glass), var(--6)); }
+#headerSubject { background: rgba(var(--bgc-glass), var(--2)); }
+#headerSubject div.subjectNav { background: rgba(var(--bgc-glass), var(--0)); }
+div#footer ul#footerLinks { background: rgba(var(--bgc-glass), var(--6)); }
+
 /* ========== 小组标题居中 ========== */
 /* .columns.clearit 原为 rgba(var(--bgc-glass),.3) 硬编码：它在 div#main 玻璃底板之上又叠一层浓淡
    与周边区域不同的白雾，是"同一网页不同区域玻璃不一致"的来源之一，归一为透明 */
@@ -493,6 +515,24 @@ html.bgc-dark #bangumi-calendar-timeline-no-api {
 }
 /* 关灯正文光晕：深色底上浅色文字加暗色微光晕，抵消背景图亮部对文字的干扰（与亮色 rgba 白光晕对应） */
 html.bgc-dark div#main { text-shadow: 0 1px 1px rgba(0,0,0,.45); }
+
+/* ==== 深色：压过站点原生深色实底，统一为玻璃 ====
+   站点官方深色给顶栏/条目标题导航/侧栏/页脚配了不透明实底或 .9 渐变
+   （选择器形如 html[data-theme="dark"] xxx，特异度与本脚本浅色规则相同或更高，
+   会把玻璃规则压成黑色实心横条——条目页顶部两条黑带即此原因）。
+   以下用同构选择器 html.bgc-dark（各特异度分量与原生逐项相同、注入在后）改写为统一玻璃参数 */
+html.bgc-dark #headerNeue2 {
+  background: rgba(var(--bgc-glass), var(--bgc-header-alpha));
+  border-bottom-color: rgba(255,255,255,.08);
+  box-shadow: none;
+}
+html.bgc-dark #headerSubject { background: rgba(var(--bgc-glass), var(--3)); }
+html.bgc-dark #headerSubject div.subjectNav { background: rgba(var(--bgc-glass), var(--0)); }
+html.bgc-dark div.SidePanel, html.bgc-dark div.SidePanelLow {
+  background: rgba(var(--bgc-glass), var(--4));
+  border-color: rgba(255,255,255,.1);
+}
+html.bgc-dark #footer #footerLinks { background: rgba(var(--bgc-glass), var(--5)); }
 /* 内容卡片级模糊：回帖、简介在 div#main 模糊之上再加一层，
    与 SidePanel（base CSS 已有 backdrop-filter）保持相同层数，和谐统一 */
 html.bgc-dark div.row_reply,

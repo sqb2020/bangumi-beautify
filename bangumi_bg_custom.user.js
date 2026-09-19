@@ -2,9 +2,9 @@
 // @name         Bangumi 自定义背景与毛玻璃
 // @name:zh-CN   Bangumi 自定义背景与毛玻璃
 // @namespace    https://bgm.tv/
-// @version      1.8.0
-// @description  自定义 bgm.tv 全站背景图片/颜色/渐变，可调透明度实现毛玻璃效果；与站点原生深色模式（html[data-theme]）双向同步，全区域统一玻璃参数。基于 rabbitohh 的 bangumi-css 项目改造，适配油猴和超合金组件
-// @description:zh-CN 自定义 bgm.tv 全站背景+毛玻璃；深色模式与站点原生开关互通，玻璃效果全区域统一；支持油猴和超合金组件
+// @version      1.10.0
+// @description  自定义 bgm.tv 全站背景图片/颜色/渐变，可调透明度实现毛玻璃效果，头部玻璃浓度可调；与站点原生深色模式（html[data-theme]）双向同步，全区域统一玻璃参数。基于 rabbitohh 的 bangumi-css 项目改造，适配油猴和超合金组件
+// @description:zh-CN 自定义 bgm.tv 全站背景+毛玻璃（头部浓度可调）；深色模式与站点原生开关互通，玻璃效果全区域统一；支持油猴和超合金组件
 // @author       qbs (based on rabbitohh's bangumi-css)
 // @include      https://bgm.tv/*
 // @include      https://bangumi.tv/*
@@ -18,6 +18,7 @@
   // ==================== 配置持久化 ====================
   const STORAGE_KEY_BG = 'bangumi-bg-custom';
   const STORAGE_KEY_OPACITY = 'bangumi-bg-opacity';
+  const STORAGE_KEY_HEADER = 'bangumi-bg-header-opacity';
   const STORAGE_KEY_MODE = 'bangumi-bg-mode';
   const STORAGE_KEY_RANDOM_CAT = 'bangumi-bg-random-cat';
   const STORAGE_KEY_HISTORY = 'bangumi-bg-history';
@@ -29,6 +30,19 @@
   function getOpacity() { const v = parseFloat(localStorage.getItem(STORAGE_KEY_OPACITY)); return isNaN(v) || v < 0 ? DEFAULT_OPACITY : v; }
   function setBg(v) { localStorage.setItem(STORAGE_KEY_BG, v); }
   function setOpacity(v) { localStorage.setItem(STORAGE_KEY_OPACITY, String(v)); }
+  // 头部玻璃浓度：未自定义（null）时跟随整体不透明度（--7 档），自定义后为 0..1 的绝对不透明度
+  function getHeaderOpacity() {
+    try {
+      const v = parseFloat(localStorage.getItem(STORAGE_KEY_HEADER));
+      return isNaN(v) || v < 0 || v > 1 ? null : v;
+    } catch (e) { return null; }
+  }
+  function setHeaderOpacity(v) {
+    try {
+      if (v == null) localStorage.removeItem(STORAGE_KEY_HEADER);
+      else localStorage.setItem(STORAGE_KEY_HEADER, String(v));
+    } catch (e) { /* ignore */ }
+  }
   function getMode() { return localStorage.getItem(STORAGE_KEY_MODE) || ''; }
   function setMode(v) { localStorage.setItem(STORAGE_KEY_MODE, v); }
   function getRandomCat() { return localStorage.getItem(STORAGE_KEY_RANDOM_CAT) || 'pc'; }
@@ -69,6 +83,9 @@
       const l = level * 0.1;
       return `calc((${opacity} * ${l}) / (1 + ${opacity} * ${l} - ${l}))`;
     };
+    // 头部玻璃浓度：未自定义时跟随整体（--7 档），自定义后为绝对不透明度 0..1
+    const headerOpacity = getHeaderOpacity();
+    const headerAlpha = headerOpacity == null ? 'var(--7)' : headerOpacity.toFixed(2);
     let css = `
 /* ==== CSS 变量 ====
    --bgc-glass / --bgc-blur / --bgc-saturate 是全站玻璃的唯一事实源：
@@ -82,6 +99,8 @@
      确保主内容区(.day-block)与侧边栏(SidePanel)视觉完全一致 */
   --bgc-blur: 12px;
   --bgc-saturate: 160%;
+  /* 头部（顶栏/导航）玻璃浓度：跟随整体 --7，或在配置面板自定义 */
+  --bgc-header-alpha: ${headerAlpha};
   color-scheme: light;
   --0: 0;
   --1: ${a(1)}; --2: ${a(2)}; --3: ${a(3)}; --4: ${a(4)}; --5: ${a(5)};
@@ -139,21 +158,31 @@ a.epBtnWatched:hover { border: 1px solid #00A8FF !important; padding-top: 5px !i
 a.epBtnUnknown:hover, a.epBtnAir:hover { border: 1px solid #00A8FF !important; padding-top: 5px !important; background-color: #cddaed; transition: .5s; }
 a.epBtnToday:hover { padding-top: 5px !important; background-color: #a8e398; border: #28674e 1px solid; transition: .5s; }
 a.epBtnNA:hover { padding-top: 5px !important; background-color: #cac9c9; border: #28674e 1px solid; transition: .5s; }
-/* 集数悬停弹出层：不透明背景 + 高 z-index，防止被毛玻璃层遮挡或透出模糊 */
-.epv_popu_default { width: 90%; background: rgba(255,255,255,.97) !important; z-index: 99999 !important; position: relative; border-radius: 8px; box-shadow: 0 4px 24px rgba(0,0,0,.3); }
+/* 注意：不要给 .epv_popu_default 写任何样式！
+   它不是弹出层，而是 EpPopuVisualizer 脚本画在每只集数按钮内部的「评分热度条」
+   （原生 position:absolute; bottom:0; right:3px; height:3px，颜色由元素内联 style 提供）。
+   旧版曾把它当弹出层强改 position:relative + 白底 !important，
+   结果所有按钮里都顶出一条歪的白色胶囊、热度颜色也被盖掉。 */
 
 /* ==== 404 / 通用头部 ====
    原 .5/.6/.7 硬编码与下方 token 版重复且取值不一致（同页不同区域玻璃忽浓忽淡），已删除，
    统一由「首页样式优化」与「内页透明化」里的 var(--7)/var(--6) 规则承担 */
 
 /* ========== 首页样式优化 ========== */
-#headerNeue2 { background: rgba(255,255,255,var(--7)); border: none; box-shadow: none; }
+#headerNeue2 { background: rgba(255,255,255,var(--bgc-header-alpha)); border: none; box-shadow: none; }
 a.chl:hover, a.chl { transition: 0.5s; }
-/* 左侧中间容器透明化：消除 .halfPage / #prgManagerMain / #prgManagerHeader 的不透明背景，
-   使 .day-block 与 SidePanel 同为单层毛玻璃，左右视觉完全统一 */
+/* 左右玻璃统一：外层分组容器(.halfPage/.sideInner)保持透明，内容面板(.sidePanelHome)
+   与左侧 .day-block 用完全相同的参数（--4 底 + 共享 blur/saturate），左右同为「main+面板」双层毛玻璃。
+   旧版把 .sidePanelHome 整个置透明：右侧只剩 main 一层玻璃，与左侧双层视觉不一致
+   （深色下尤其明显——左侧两叠深色几乎不透图、右侧单层透出模糊图），且面板文字直接压在背景图上可读性差 */
 .halfPage.sort.ui-draggable { background: rgba(255,255,255,var(--0)); }
-.sidePanelHome { background: rgba(255,255,255,var(--0)); }
-#home_calendar { background: rgba(255,255,255,var(--6)); }
+.sidePanelHome {
+  background: rgba(255,255,255,var(--4));
+  -webkit-backdrop-filter: blur(var(--bgc-blur)) saturate(var(--bgc-saturate));
+  backdrop-filter: blur(var(--bgc-blur)) saturate(var(--bgc-saturate));
+  border-radius: 10px;
+}
+#home_calendar { background: rgba(255,255,255,var(--4)); }
 .clearit.week { border: none; }
 #prgManagerMain { background: rgba(255,255,255,var(--0)); }
 input.inputtext { background: rgba(255,255,255,var(--7)); }
@@ -172,7 +201,7 @@ textarea.quick { padding-top: 5px; background: rgba(255,255,255,var(--6)); borde
 .line_odd, .line_even { background: rgba(255,255,255,var(--0)); border: none; }
 #footer #footerLinks { background: rgba(255,255,255,var(--6)); border-radius: 10px; }
 #columnTimelineInnerWrapper, #columnTimelineInnerWrapper ul.timelineTabs { background: rgba(255,255,255,var(--4)); }
-div.SidePanelMini.clearit { background: rgba(255,255,255,var(--6)) !important; }
+div.SidePanelMini.clearit { background: rgba(255,255,255,var(--4)) !important; }
 div.SidePanelMini.clearit.award2022 { background: rgba(255,255,255,var(--10)) !important; opacity: var(--6); }
 #columnTimelineInnerB { background-color: rgba(255,255,255,var(--4)); }
 #columnTimelineInnerB div.TsukkmiBox { background: rgba(255,255,255,var(--0)); }
@@ -198,7 +227,7 @@ ul.sideTpcList .row:nth-child(odd), ul.sideTpcList .row:nth-child(2n) { backgrou
 #columnIntroB div.loginPanel dt input { background: rgba(255,255,255,var(--5)); }
 textarea.quick:focus, textarea.reply:focus, textarea.reply { background: rgba(255,255,255,var(--5)) !important; }
 #navNeue2 #navMenuNeue li a.chl { background: rgba(255,255,255,var(--5)); }
-#anime-schedule-container { background: rgba(255,255,255,var(--5)); color: #343434; }
+#anime-schedule-container { background: rgba(255,255,255,var(--4)); color: #343434; }
 ul.sideTpcList .row:nth-child(odd), ul.sideTpcList .row:nth-child(2n), ul.timeline li, #prgManager { border: none; }
 /* #prgManager / .sort 均不加 backdrop-filter：
    .sort(.halfPage.sort.ui-draggable) 背景已透明，若再加 blur 会在左侧产生多余模糊层
@@ -425,6 +454,16 @@ ul#infobox li.sub, ul#infobox li.sub_section, ul#infobox li.sub_group { border: 
 ul#infobox li .tag { border: 1px solid #0084B4; }
 a.cover:hover img.cover { padding: 0; }
 
+/* ==== 头部底纹恢复与可读性 ====
+   上方「边框处理」清零列表把 #headerNeue2 / #headerSubject div.subjectNav / #footerLinks 的
+   底纹一并置成了全透明：顶部导航与页脚直接贴在锐利背景图上，文字可读性差。
+   在清零之后按统一玻璃参数恢复底纹（清零的 border:none 仍然生效） */
+#headerNeue2 { background: rgba(var(--bgc-glass), var(--bgc-header-alpha)); }
+#navNeue2 #navMenuNeue li a.chl { background: rgba(var(--bgc-glass), var(--6)); }
+#headerSubject { background: rgba(var(--bgc-glass), var(--2)); }
+#headerSubject div.subjectNav { background: rgba(var(--bgc-glass), var(--0)); }
+div#footer ul#footerLinks { background: rgba(var(--bgc-glass), var(--6)); }
+
 /* ========== 小组标题居中 ========== */
 /* .columns.clearit 原为 rgba(255,255,255,.3) 硬编码：它在 div#main 玻璃底板之上又叠一层浓淡
    与周边区域不同的白雾，是"同一网页不同区域玻璃不一致"的来源之一，归一为透明 */
@@ -568,6 +607,24 @@ html.bgc-dark #bangumi-calendar-timeline-no-api {
 }
 /* 关灯正文光晕：深色底上浅色文字加暗色微光晕，抵消背景图亮部对文字的干扰（与亮色 rgba 白光晕对应） */
 html.bgc-dark div#main { text-shadow: 0 1px 1px rgba(0,0,0,.45); }
+
+/* ==== 深色：压过站点原生深色实底，统一为玻璃 ====
+   站点官方深色给顶栏/条目标题导航/侧栏/页脚配了不透明实底或 .9 渐变
+   （选择器形如 html[data-theme="dark"] xxx，特异度与本脚本浅色规则相同或更高，
+   会把玻璃规则压成黑色实心横条——条目页顶部两条黑带即此原因）。
+   以下用同构选择器 html.bgc-dark（各特异度分量与原生逐项相同、注入在后）改写为统一玻璃参数 */
+html.bgc-dark #headerNeue2 {
+  background: rgba(var(--bgc-glass), var(--bgc-header-alpha));
+  border-bottom-color: rgba(255,255,255,.08);
+  box-shadow: none;
+}
+html.bgc-dark #headerSubject { background: rgba(var(--bgc-glass), var(--3)); }
+html.bgc-dark #headerSubject div.subjectNav { background: rgba(var(--bgc-glass), var(--0)); }
+html.bgc-dark div.SidePanel, html.bgc-dark div.SidePanelLow {
+  background: rgba(var(--bgc-glass), var(--4));
+  border-color: rgba(255,255,255,.1);
+}
+html.bgc-dark #footer #footerLinks { background: rgba(var(--bgc-glass), var(--5)); }
 /* 内容卡片级模糊：回帖、简介在 div#main 模糊之上再加一层，
    与 SidePanel（base CSS 已有 backdrop-filter）保持相同层数，和谐统一 */
 html.bgc-dark div.row_reply,
@@ -838,6 +895,18 @@ html.bgc-dark blockquote.intro {
     const imgUrl = initialMode === 'image' ? (currentBg.match(/url\(["']?([^"')]+)["']?\)/) || ['',''])[1] : '';
     const randomCat = initialMode === 'random' ? (currentBg.match(/t\.alcy\.cc\/([^"')\s]+)/) || ['','pc'])[1] : 'pc';
 
+    // 头部玻璃浓度：未自定义时滑杆停在「跟随整体」的等效值（--7 档按当前总不透明度折算）
+    const storedHeaderOpacity = getHeaderOpacity();
+    const headerL = 0.7;
+    const headerDefaultAlpha = Math.max(0, Math.min(1,
+      (currentOpacity * headerL) / (1 + currentOpacity * headerL - headerL)));
+    const headerSliderVal = storedHeaderOpacity != null
+      ? storedHeaderOpacity
+      : Math.round(headerDefaultAlpha * 20) / 20;
+    const headerLabel = storedHeaderOpacity != null
+      ? Math.round(storedHeaderOpacity * 100) + '%'
+      : '跟随整体 ≈' + Math.round(headerDefaultAlpha * 100) + '%';
+
     panel.innerHTML = `
       <div class="bg-popup" style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;">
         <span class="bg-popup-title" style="font-size:16px;font-weight:600;color:#333;">Bangumi 背景设置</span>
@@ -999,6 +1068,20 @@ html.bgc-dark blockquote.intro {
         </div>
       </div>
 
+      <!-- 头部玻璃浓度（顶栏/导航底纹，亮暗色通用） -->
+      <div style="margin-bottom:14px;">
+        <label style="display:block;font-weight:600;margin-bottom:6px;color:#555;">
+          头部玻璃浓度 <span id="bg-header-val" style="font-weight:400;color:#f0911e;">${headerLabel}</span>
+          <a href="javascript:void(0);" id="bg-header-auto" title="恢复跟随上方「不透明度」联动"
+             style="float:right;font-weight:400;font-size:11px;color:#aaa;text-decoration:none;">跟随整体</a>
+        </label>
+        <input id="bg-header-input" type="range" min="0" max="1" step="0.05" value="${headerSliderVal}"
+          style="width:100%;accent-color:#f0911e;">
+        <div style="display:flex;justify-content:space-between;font-size:11px;color:#bbb;">
+          <span>全透明</span><span>不透明</span>
+        </div>
+      </div>
+
       <div style="display:flex;gap:8px;">
         <button id="bg-btn-apply" style="flex:1;padding:8px;background:#f0911e;color:#fff;border:none;border-radius:6px;cursor:pointer;font-size:14px;font-weight:600;">应用</button>
         <button id="bg-btn-reset" style="padding:8px 16px;background:#f5f5f5;color:#666;border:1px solid #ddd;border-radius:6px;cursor:pointer;font-size:13px;">重置默认</button>
@@ -1056,6 +1139,20 @@ html.bgc-dark blockquote.intro {
     const opacityInput = panel.querySelector('#bg-input-opacity');
     const opacityValEl = panel.querySelector('#bg-opacity-val');
     opacityInput.oninput = () => { opacityValEl.textContent = parseFloat(opacityInput.value).toFixed(2); };
+
+    // 头部玻璃浓度：拖动即视为自定义；「跟随整体」恢复联动（需点「应用」生效）
+    const headerInput = panel.querySelector('#bg-header-input');
+    const headerValEl = panel.querySelector('#bg-header-val');
+    let headerAuto = storedHeaderOpacity == null;
+    headerInput.oninput = () => {
+      headerAuto = false;
+      headerValEl.textContent = Math.round(parseFloat(headerInput.value) * 100) + '%';
+    };
+    panel.querySelector('#bg-header-auto').onclick = () => {
+      headerAuto = true;
+      headerInput.value = String(Math.round(headerDefaultAlpha * 20) / 20);
+      headerValEl.textContent = '跟随整体 ≈' + Math.round(headerDefaultAlpha * 100) + '%';
+    };
 
     const preview = panel.querySelector('#bg-live-preview');
 
@@ -1205,6 +1302,7 @@ html.bgc-dark blockquote.intro {
 
       setBg(currentBg);
       setOpacity(currentOpacity);
+      setHeaderOpacity(headerAuto ? null : parseFloat(headerInput.value));
       injectCSS();
       panel.style.display = 'none';
     };
@@ -1215,8 +1313,12 @@ html.bgc-dark blockquote.intro {
       currentOpacity = DEFAULT_OPACITY;
       opacityInput.value = String(DEFAULT_OPACITY);
       opacityValEl.textContent = String(DEFAULT_OPACITY);
+      headerAuto = true;
+      headerInput.value = String(Math.round(headerDefaultAlpha * 20) / 20);
+      headerValEl.textContent = '跟随整体 ≈' + Math.round(headerDefaultAlpha * 100) + '%';
       setBg(DEFAULT_BG);
       setOpacity(DEFAULT_OPACITY);
+      setHeaderOpacity(null);
       setMode('gradient');
       injectCSS();
       panel.style.display = 'none';
