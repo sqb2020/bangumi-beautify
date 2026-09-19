@@ -1,0 +1,505 @@
+
+/* ==== CSS 变量 ====
+   --bgc-glass / --bgc-blur / --bgc-saturate 是全站玻璃的唯一事实源：
+   本脚本与 bangumi_calendar_timeline(.no_api) / bangumi_week_blocks 共用同值定义，
+   任何脚本注入先后都不影响最终参数（值相同即无冲突），保证同一网页所有区域玻璃一致 */
+:root {
+  --bg-custom: linear-gradient(to right, #fabbbb, #ee8292);
+  --bg-opacity: 1;
+  --bgc-glass: 255, 255, 255;
+  /* 统一毛玻璃参数：所有面板/卡片/侧边栏共享同一模糊度与饱和度，
+     确保主内容区(.day-block)与侧边栏(SidePanel)视觉完全一致 */
+  --bgc-blur: 12px;
+  --bgc-saturate: 160%;
+  color-scheme: light;
+  --0: 0;
+  --1: calc((1 * 0.1) / (1 + 1 * 0.1 - 0.1)); --2: calc((1 * 0.2) / (1 + 1 * 0.2 - 0.2)); --3: calc((1 * 0.30000000000000004) / (1 + 1 * 0.30000000000000004 - 0.30000000000000004)); --4: calc((1 * 0.4) / (1 + 1 * 0.4 - 0.4)); --5: calc((1 * 0.5) / (1 + 1 * 0.5 - 0.5));
+  --6: calc((1 * 0.6000000000000001) / (1 + 1 * 0.6000000000000001 - 0.6000000000000001)); --7: calc((1 * 0.7000000000000001) / (1 + 1 * 0.7000000000000001 - 0.7000000000000001)); --8: calc((1 * 0.8) / (1 + 1 * 0.8 - 0.8)); --9: calc((1 * 0.9) / (1 + 1 * 0.9 - 0.9)); --10: calc((1 * 1) / (1 + 1 * 1 - 1));
+  --35: calc((1 * 0.35000000000000003) / (1 + 1 * 0.35000000000000003 - 0.35000000000000003)); --45: calc((1 * 0.45) / (1 + 1 * 0.45 - 0.45)); --65: calc((1 * 0.65) / (1 + 1 * 0.65 - 0.65)); --77: calc((1 * 0.77) / (1 + 1 * 0.77 - 0.77)); --85: calc((1 * 0.8500000000000001) / (1 + 1 * 0.8500000000000001 - 0.8500000000000001));
+}
+/* ==== 关灯模式变量 ====
+   深色判定与站点原生 html[data-theme="dark"]（官方关灯开关/系统偏好）同步，
+   由 JS 在 html 上切换 bgc-dark 类 */
+html.bgc-dark {
+  /* 关灯玻璃底色：用「保色相」的深冷色而非中灰。
+     中灰（如 38,38,46）与背景图混合会把色彩去饱和成统一深灰浆糊——即「毛玻璃全是深色、只有深浅不同」；
+     近黑的深冷色只压暗、不去色，面板因而透出背景图本身的丰富色彩，配合下方 backdrop-filter 成为发光毛玻璃。
+     注意：此值与 companion 脚本里的 fallback 保持一致（16,18,28），不得单方面修改 */
+  --bgc-glass: 16, 18, 28;
+  --bgc-blur: 12px;
+  --bgc-saturate: 150%;
+  color-scheme: dark;
+}
+
+/* ==== 背景图片（全站） ==== */
+html::after {
+  content: '';
+  height: 100%; width: 100%;
+  position: fixed; top: 0; left: 0;
+  opacity: 0.75;
+  background: var(--bg-custom);
+  background-size: cover;
+  z-index: -1;
+}
+
+/* ==== 光标操作：黑条展开 ==== */
+span[style*="background-color:#555"][style*="color:#555"] {
+  box-shadow: #555 1px 1px 2px; border-radius: 2px;
+}
+span:hover[style*="background-color:#555"][style*="color:#555"] {
+  position: relative; color: #fff !important; transition: all .5s;
+}
+span:hover[style*="background-color:#555"][style*="color:#555"]::after {
+  content: "人家的秘密都被你看光了>人<";
+  position: absolute; right: 0; color: #555; background-color: #fff;
+  box-shadow: #555 1px 1px 2px; display: block; white-space: nowrap;
+}
+
+/* ==== 进度管理：条目悬停弹起 ==== */
+ul.prg_list li:hover { margin-bottom: 8px !important; display: block; transition: .5s; margin-top: -5px; padding-top: 0; }
+ul.prg_list li { margin-bottom: 3px !important; display: block; transition: .5s; margin-top: 0; }
+.tinyMode a.epBtnWatched:hover, a.sepBtnWatched:hover { border: 1px solid #00A8FF !important; padding-top: 2px !important; background-color: #407fd3; transition: .5s; }
+.tinyMode a.epBtnUnknown:hover, .tinyMode a.epBtnAir:hover, a.sepBtnUnknown:hover, a.sepBtnAir:hover { border: 1px solid #00A8FF !important; padding-top: 2px !important; background-color: #cddaed; transition: .5s; }
+.tinyMode a.epBtnToday:hover { padding-top: 2px !important; background-color: #a8e398; border: #28674e 1px solid; transition: .5s; }
+.tinyMode a.epBtnNA:hover { padding-top: 2px !important; background-color: #cac9c9; border: #28674e 1px solid; transition: .5s; }
+div.subject_tag_section a.l:hover { margin-left: 5px; margin-right: 5px; background: rgba(var(--bgc-glass),.7) !important; color: #003d54; transition: .5s; }
+.load-epinfo.epBtnToday { background: #b0eba0; border: #28674e 1px solid; }
+a.epBtnWatched:hover { border: 1px solid #00A8FF !important; padding-top: 5px !important; background-color: #407fd3; transition: .5s; }
+a.epBtnUnknown:hover, a.epBtnAir:hover { border: 1px solid #00A8FF !important; padding-top: 5px !important; background-color: #cddaed; transition: .5s; }
+a.epBtnToday:hover { padding-top: 5px !important; background-color: #a8e398; border: #28674e 1px solid; transition: .5s; }
+a.epBtnNA:hover { padding-top: 5px !important; background-color: #cac9c9; border: #28674e 1px solid; transition: .5s; }
+/* 集数悬停弹出层：不透明背景 + 高 z-index，防止被毛玻璃层遮挡或透出模糊 */
+.epv_popu_default { width: 90%; background: rgba(var(--bgc-glass),.97) !important; z-index: 99999 !important; position: relative; border-radius: 8px; box-shadow: 0 4px 24px rgba(0,0,0,.3); }
+
+/* ==== 404 / 通用头部 ====
+   原 .5/.6/.7 硬编码与下方 token 版重复且取值不一致（同页不同区域玻璃忽浓忽淡），已删除，
+   统一由「首页样式优化」与「内页透明化」里的 var(--7)/var(--6) 规则承担 */
+
+/* ========== 首页样式优化 ========== */
+#headerNeue2 { background: rgba(var(--bgc-glass),var(--7)); border: none; box-shadow: none; }
+a.chl:hover, a.chl { transition: 0.5s; }
+/* 左侧中间容器透明化：消除 .halfPage / #prgManagerMain / #prgManagerHeader 的不透明背景，
+   使 .day-block 与 SidePanel 同为单层毛玻璃，左右视觉完全统一 */
+.halfPage.sort.ui-draggable { background: rgba(var(--bgc-glass),var(--0)); }
+.sidePanelHome { background: rgba(var(--bgc-glass),var(--0)); }
+#home_calendar { background: rgba(var(--bgc-glass),var(--6)); }
+.clearit.week { border: none; }
+#prgManagerMain { background: rgba(var(--bgc-glass),var(--0)); }
+input.inputtext { background: rgba(var(--bgc-glass),var(--7)); }
+#cloumnSubjectInfo a.prgCheckIn, ul#prgSubjectList li a.prgCheckIn { background: rgba(var(--bgc-glass),var(--0)); }
+#prgManagerHeader { background: rgba(var(--bgc-glass),var(--0)); border: none; }
+#cloumnSubjectInfo div.header, #cloumnSubjectInfo div.moreEp, ul#prgSubjectList.list li.sep, ul#prgSubjectList.full li.sep { background: rgba(var(--bgc-glass),var(--0)); border: none; }
+ul#prgSubjectList.full { background: rgba(var(--bgc-glass),var(--0)); }
+ul#prgSubjectList.full li p.listProgress span { background: rgba(65,180,218,var(--4)); border: none; }
+ul#prgSubjectList.full li, div.sidePanelHome h2 { border: none; }
+#home_calendar, ul.calendarMini div.coverList { border: none; }
+ul.calendarMini div.coverList { background: rgba(var(--bgc-glass),var(--0)); }
+small.grey { color: #8f8f8f; }
+ul.calendarMini li, ul.calendarMini li.Sat, ul.calendarMini li.Mon, ul.calendarMini li.Tue, ul.calendarMini li.Wed, ul.calendarMini li.Thu, ul.calendarMini li.Fri, ul.calendarMini li.Sun { background: rgba(var(--bgc-glass),var(--0)); color: grey; border: none; }
+.halfPage.sort.ui-draggable { padding-top: 5px; background: rgba(var(--bgc-glass),var(--0)); border-radius: 10px; }
+textarea.quick { padding-top: 5px; background: rgba(var(--bgc-glass),var(--6)); border-radius: 10px; }
+.line_odd, .line_even { background: rgba(var(--bgc-glass),var(--0)); border: none; }
+#footer #footerLinks { background: rgba(var(--bgc-glass),var(--6)); border-radius: 10px; }
+#columnTimelineInnerWrapper, #columnTimelineInnerWrapper ul.timelineTabs { background: rgba(var(--bgc-glass),var(--4)); }
+div.SidePanelMini.clearit { background: rgba(var(--bgc-glass),var(--6)) !important; }
+div.SidePanelMini.clearit.award2022 { background: rgba(var(--bgc-glass),var(--10)) !important; opacity: var(--6); }
+#columnTimelineInnerB { background-color: rgba(var(--bgc-glass),var(--4)); }
+#columnTimelineInnerB div.TsukkmiBox { background: rgba(var(--bgc-glass),var(--0)); }
+#cloumnSubjectInfo div.infoWrapper_book div.header { background: rgba(var(--bgc-glass),var(--0)); border: none; }
+hr.board { height: 0; }
+#introWrapper { background: none; box-shadow: none; }
+#timeline ul.subReply { background: rgba(var(--bgc-glass),var(--0)); }
+input.inputBtn, a.fancyBtn { background: rgba(56,176,207,var(--6)); border-radius: 10px; border: none; }
+li.doujin { z-index: -1; position: fixed; opacity: 0; }
+#columnHomeA div.sort h2.subtitle:hover, #columnHomeB div.sort h2.subtitle:hover { border-radius: 10px 10px 0 0; background: rgba(var(--bgc-glass),var(--4)); }
+.ui-draggable { padding-top: 5px; background: rgba(var(--bgc-glass),var(--6)); border-radius: 10px; }
+.sort { background: rgba(var(--bgc-glass),var(--0)); }
+#header > small.grey { color: white; }
+#timeline h4.Header { border: none; }
+#timeline ul li.tml_item .card:not(.card_tiny) { background: rgba(var(--bgc-glass),var(--4)); }
+#timeline ul li.tml_item .card.card_tiny { background: rgba(var(--bgc-glass),var(--0)); }
+#timeline ul li.tml_item .card.card_tiny .container { background: rgba(var(--bgc-glass),var(--4)); }
+#timeline ul li.tml_item .card.card_tiny .container:hover { background: rgba(var(--bgc-glass),var(--6)); }
+ul.sideTpcList .row:nth-child(odd), ul.sideTpcList .row:nth-child(2n) { background: rgba(var(--bgc-glass),var(--0)); }
+#timeline ul li.tml_item .comment { background: rgba(var(--bgc-glass),var(--5)); border: none; }
+#columnIntroB div.loginPanel { background: rgba(var(--bgc-glass),var(--5)); }
+#columnIntroB div.loginPanel dt { background: rgba(var(--bgc-glass),var(--0)); border: none; }
+#columnIntroB div.loginPanel dt input { background: rgba(var(--bgc-glass),var(--5)); }
+textarea.quick:focus, textarea.reply:focus, textarea.reply { background: rgba(var(--bgc-glass),var(--5)) !important; }
+#navNeue2 #navMenuNeue li a.chl { background: rgba(var(--bgc-glass),var(--5)); }
+#anime-schedule-container { background: rgba(var(--bgc-glass),var(--5)); color: #343434; }
+ul.sideTpcList .row:nth-child(odd), ul.sideTpcList .row:nth-child(2n), ul.timeline li, #prgManager { border: none; }
+/* #prgManager / .sort 均不加 backdrop-filter：
+   .sort(.halfPage.sort.ui-draggable) 背景已透明，若再加 blur 会在左侧产生多余模糊层
+   （div#main blur → .sort blur → .day-block blur = 3层），
+   而右侧仅 div#main blur → SidePanel blur = 2层，导致左右毛玻璃色彩不一致。
+   去掉 .sort blur 后左右均为 2 层，视觉统一。 */
+#home_calendar, #anime-schedule-container { -webkit-backdrop-filter: blur(var(--bgc-blur)) saturate(var(--bgc-saturate)); backdrop-filter: blur(var(--bgc-blur)) saturate(var(--bgc-saturate)); }
+#prgManagerMain div.cloumnSubjects { border-right: #bfbfbf94 2px solid; }
+#timeline ul li span.info { border: none; }
+
+/* ========== 内页透明化 ========== */
+/* div#main 是全站内容底板：亮色模式同样加 backdrop-filter，与深色模式及 SidePanel/头部保持
+   相同的磨砂层数（此前只有深色模糊、亮色不模糊，同一网页不同区域玻璃质感不一致）；
+   text-shadow 给正文加一层同色微光晕，提高毛玻璃上的文字可读性（深色模式在尾部有对应深色光晕） */
+div#main {
+  background: rgba(var(--bgc-glass),var(--4));
+  -webkit-backdrop-filter: blur(var(--bgc-blur)) saturate(var(--bgc-saturate));
+  backdrop-filter: blur(var(--bgc-blur)) saturate(var(--bgc-saturate));
+  text-shadow: 0 1px 1px rgba(var(--bgc-glass),.14);
+}
+.indexCatBox ul.cat li a.add, .indexCatBox ul.cat li a.add:hover { background: rgba(var(--bgc-glass),var(--0)); }
+#user_home div.userSynchronize { background: rgba(var(--bgc-glass),var(--6)); }
+ul.sideEpList li.even { background: rgba(var(--bgc-glass),var(--4)); }
+ul.sideEpList li.cur { background: rgba(98,114,178,var(--77)) !important; }
+#columnTimelineA #SayInput { background: rgba(var(--bgc-glass),var(--6)); }
+ul#crtRelateSubjects li.old { background: rgba(var(--bgc-glass),var(--0)); }
+div.SidePanel, div.SidePanelLow { background: rgba(var(--bgc-glass),var(--4)); -webkit-backdrop-filter: blur(var(--bgc-blur)) saturate(var(--bgc-saturate)); backdrop-filter: blur(var(--bgc-blur)) saturate(var(--bgc-saturate)); }
+#eden_tpc_list ul li.line_odd:hover, #eden_tpc_list ul li.line_even:hover { background: rgba(var(--bgc-glass),var(--7)); }
+div.subject_tag_section a.l { background: rgba(var(--bgc-glass),var(--7)); }
+table.forumtable { background: rgba(var(--bgc-glass),var(--4)); }
+table.forumtable tr.alt td { background: rgba(var(--bgc-glass),var(--0)); }
+.subjectListWrapper { background: rgba(var(--bgc-glass),var(--5)); }
+#columnSearchA ul, #columnSearchA ul li.root { background: rgba(var(--bgc-glass),var(--4)); }
+#columnSearch { background: rgba(var(--bgc-glass),var(--4)); }
+.magiHeader { background: rgba(var(--bgc-glass),var(--35)); }
+.panelProgress.book { background: rgba(var(--bgc-glass),var(--35)); border-radius: 7px; border-color: rgba(153,153,153,.59); }
+div#ChartWarpper { background: rgba(var(--bgc-glass),var(--0)); }
+#columnSearchA ul li a:hover, #columnSearchA ul li a.selected { background: #f09199ad; }
+.columnsApp.clearit { background: rgba(var(--bgc-glass),var(--5)); }
+div.eden_rec_box { background: rgba(var(--bgc-glass),var(--5)); }
+ul#browserItemList { background: rgba(var(--bgc-glass),var(--0)); }
+div.infobox .modifyTool { background: rgba(var(--bgc-glass),var(--5)); }
+#columnNotifyA div.even { background: rgba(var(--bgc-glass),var(--4)); }
+#main.png_bg { background: rgba(var(--bgc-glass),var(--4)); }
+ul.timelineTabs li a.focus, ul.timelineTabs li a.top_focus { background: rgba(var(--bgc-glass),var(--7)); }
+.grp_box.clearit { background: rgba(var(--bgc-glass),var(--35)); }
+#columnB, #pageHeader { background: rgba(var(--bgc-glass),var(--0)); }
+ul.browserFull li.item.even { background: rgba(var(--bgc-glass),var(--0)); }
+#columnSubjectBrowserB .sideInner { background: rgba(var(--bgc-glass),var(--5)); }
+#columnSubjectBrowserB .sideInner h2 { background: rgba(var(--bgc-glass),var(--0)); }
+select.form { background: rgba(var(--bgc-glass),var(--5)); }
+input.btnPink, input.btnGray { background: #ff4a5952; }
+#comment_list { background: rgba(var(--bgc-glass),var(--0)); }
+/* #header / #headerSubject / .subject_section 等标题·导航区域改为透明或极淡底色，
+   避免在 div#main 毛玻璃之上形成突兀色带横条（讨论页/条目页尤其明显） */
+#header { background: rgba(var(--bgc-glass),var(--0)); }
+/* .mainWrapper 只保留下面这条 var(--4) 规则：原先其上方的 var(--3) 与其下方的 var(--4)
+   重复定义同一元素，取值还不一致，属同页玻璃不一致的来源，已合并 */
+.mainWrapper, #comment_box .text, #comment_box .text_pm, .line_odd, .line_even, ul.line_list_music li.cat, ul.line_list li.cat { background: rgba(var(--bgc-glass),var(--4)); }
+#grailBox2, ul.timelineTabs { background: rgba(var(--bgc-glass),var(--3)); }
+#footer { background: rgba(var(--bgc-glass),var(--4)); }
+.temples.tab_page_item.tab_page_item_0 { background: rgba(var(--bgc-glass),var(--3)); }
+#headerSubject { background: rgba(var(--bgc-glass),var(--2)); }
+.subject_section.clearit { background: rgba(var(--bgc-glass),var(--3)); }
+tbody { background: rgba(var(--bgc-glass),var(--0)); }
+hr.board, div#collect_title, #ChartWarpper .chart_desc { background: rgba(var(--bgc-glass),var(--0)); }
+a.btnGreenSmall.rr { background: rgba(30,181,176,var(--45)); }
+a.btnRedSmall.rr { background: rgba(200,106,106,var(--45)); }
+#subject_inner_info, div.menu_inner { background: rgba(var(--bgc-glass),var(--5)); }
+#headerNeue2 { background: rgba(var(--bgc-glass),var(--7)); }
+div.grp_box { background: rgba(var(--bgc-glass),var(--5)); }
+table.topic_list tr.header { background: rgba(var(--bgc-glass),var(--2)); }
+#headerProfile div.subjectNav { background: rgba(var(--bgc-glass),var(--0)); }
+#headerProfile .headerContainer { background: rgba(var(--bgc-glass),var(--2)); }
+blockquote.intro { background: rgba(var(--bgc-glass),var(--4)); }
+div.row_reply { background: rgba(var(--bgc-glass),var(--5)); }
+a.chiiBtn { background: rgba(var(--bgc-glass),var(--5)); }
+a.chiiBtn:hover { background: rgba(245,107,155,var(--4)); }
+table.topic_list { border-radius: 15px; }
+div.collectBlock p.collectModify { background: #ffffffba url(/img/ico/ico_list_love.gif) no-repeat 5px 50%; }
+table.topic_list tr.even { background-color: #fff0; }
+tr.odd { background-color: #f9f9f900; }
+div.subject_section { background-color: #f9f9f900; border-radius: 10px; margin-bottom: 30px; }
+ul.browserFull li.item span.rank, a.selected { background: #ff99bf4f !important; }
+textarea#content { background: rgba(var(--bgc-glass),var(--5)) !important; }
+.modifyTool { opacity: var(--9); }
+div#footer ul#footerLinks { opacity: var(--9); }
+/* 集数悬停弹出窗口（cluetip）：
+   原 opacity:var(--85) 让弹出窗整体半透明，在毛玻璃页面上如同隔雾看花；
+   改为不透明背景 + 高 z-index，确保弹出窗浮于毛玻璃层之上、清晰可读。
+   rgba(var(--bgc-glass),.97) 在 dark 模式下经 replaceAll 变为 rgba(var(--bgc-glass),.97)
+   即 97% 不透明深色背景，与页面毛玻璃和谐但不会被"吞没"。 */
+#cluetip { opacity: 1 !important; z-index: 99999 !important; background: rgba(var(--bgc-glass),.97) !important; border-radius: 8px; box-shadow: 0 4px 24px rgba(0,0,0,.3); }
+#cluetip #cluetip-inner { background: rgba(var(--bgc-glass),.95) !important; }
+#timeline ul li.tml_item .card { background: rgba(var(--bgc-glass),var(--6)); }
+#timeline ul li.tml_item .card.card_tiny .container { background: rgba(var(--bgc-glass),var(--0)); }
+ul.sideTpcList .row:nth-child(odd) { background: rgba(var(--bgc-glass),var(--0)); }
+#comment_list .row:nth-child(odd), #comment_list .row:nth-child(even) { background: rgba(var(--bgc-glass),var(--5)); }
+.codeHighlight pre { background-color: rgba(var(--bgc-glass),var(--5)) !important; }
+.infobox_container .infobox_expand { background: rgba(var(--bgc-glass),var(--4)); }
+.infobox_container .infobox_expand a:hover { background: rgba(245,107,155,var(--4)); }
+#comment_list div.row_state { background: rgba(var(--bgc-glass),var(--5)); }
+div.reply_highlight { background: rgba(var(--bgc-glass),var(--4)) !important; }
+#aboutTimeline ul.Events li.detail ul.column li, #aboutTimeline ul.Events li.intro p { background: rgba(var(--bgc-glass),var(--0)); }
+#aboutTimeline { background: rgba(var(--bgc-glass),var(--4)); }
+input.inputtext, textarea.reply { background: rgba(var(--bgc-glass),var(--5)) !important; }
+input.inputBtn, a.fancyBtn { background: #ff7a947a; }
+#columnCrtBrowserA { background: rgba(var(--bgc-glass),var(--5)); }
+#columnCrtBrowserA h3 { background: none; }
+#columnTimelineInnerB div.TsukkmiBox, #columnTimelineInnerWrapper { background: none; }
+#columnTimelineInnerWrapper ul.timelineTabs, #columnTimelineInnerB { background: rgba(var(--bgc-glass),var(--3)); }
+#timeline ul li.tml_item .comment { background: rgba(var(--bgc-glass),var(--5)); }
+#columnIntroB div.loginPanel { background: rgba(var(--bgc-glass),var(--5)); }
+#columnIntroB div.loginPanel dt { background: rgba(var(--bgc-glass),var(--0)); }
+#timeline ul li.tml_item .card:not(.card_tiny) { background: rgba(var(--bgc-glass),var(--4)); }
+#timeline ul li.tml_item .card.card_tiny { background: rgba(var(--bgc-glass),var(--0)); }
+#timeline ul li.tml_item .card.card_tiny .container { background: rgba(var(--bgc-glass),var(--4)); }
+#timeline ul li.tml_item .card.card_tiny .container:hover { background: rgba(var(--bgc-glass),var(--6)); }
+rect[data-count="0"] { fill: rgb(255,255,255); }
+ul.secTab li a { background: rgba(var(--bgc-glass),var(--5)); }
+ul.secTab li a:hover { background: rgba(255,164,189,.14); }
+#navNeue2 #navMenuNeue li a.chl { background: rgba(var(--bgc-glass),var(--5)); }
+a.btnBlue, a.btnBlueSmall { background: rgba(var(--bgc-glass),var(--7)); }
+a.btnBlue:hover, a.btnBlueSmall:hover { background: rgba(255,114,114,var(--4)); }
+input.inputBtn:hover, a.fancyBtn:hover { background: rgba(255,98,130,var(--6)); }
+.likes_grid .item { background: rgba(var(--bgc-glass),var(--6)); }
+textarea.quick { background: rgba(var(--bgc-glass),var(--6)); }
+textarea.quick:focus, textarea.reply:focus { background: rgba(var(--bgc-glass),var(--8)); }
+#show-diff-view-side-by-side { background: rgba(var(--bgc-glass),var(--6)); }
+.d2h-file-header, .d2h-code-side-linenumber { background: rgba(var(--bgc-glass),var(--6)); }
+ul#infobox li.group_section { background: rgba(var(--bgc-glass),var(--4)); }
+table.settings .tag_list li a { background: rgba(var(--bgc-glass),var(--8)); }
+#sliderContainer { background: rgba(229,229,229,var(--5)); }
+div.ui-widget-content { background: rgba(var(--bgc-glass),var(--7)); }
+
+/* ========== 边框处理 ========== */
+#timeline h4.Header, ul.timeline li, ul.tagList li, #headerNeue2, .line_odd, .line_even, .user_list.line_list li,
+#columnSearch, a.cover:hover img.cover, img.cover, table.settings td, #columnSearchA ul li a,
+#columnSearchA ul li a:hover, #columnSearchA ul li a.selected, #wrapperNeue #columnSubjectBrowserA #browserTools,
+ul.browserFull li.item.even, div.light_odd, div.light_even, .borderNeue, #headerSubject div.subjectNav,
+div.navSubTabsWrapper, div.section_line, ul.browserList li.even, div#footer ul#footerLinks, ul.browserList li.item,
+ul#infobox li, ul.groupsLine li, div.subject_tag_section, table td.even, ul.browserCoverMedium li.sep,
+div.subjectFilter, div.subjectFilter ul.grouped, #browserTools, ul.browserFull li.even, ul.browserFull li.item,
+.cell.name.medium.ll, div.cell.ll, .line_list.user_list, input.inputtext, div.subject_section, table.topic_list tr.header,
+ul.collect li.item, ul.collect li.cat, div.sub_reply_bg, #entry_list div.item, #columnSearchA ul,
+div.SimpleSidePanel h2, div.user_box, ul#crtRelateSubjects li.old, ul.ajaxSubjectList li, #columnCrtBrowserB .crtTools
+{ border: none; background: rgba(0,0,0,0); }
+#headerSubject h1 { margin-top: 0; padding-top: 10px; }
+.panelProgress.book { border-radius: 7px; border-color: rgba(153,153,153,.59); }
+#eden_tpc_list ul li.line_odd:hover, #eden_tpc_list ul li.line_odd, #eden_tpc_list ul li.line_even:hover,
+#eden_tpc_list ul li.line_even { transition: 0.8s; }
+a.chl:hover, a.chl { transition: 0.5s; }
+img.cover, img.cover:hover { padding: 0; border: 0; }
+#headerNeue2, div.codeHighlight { -webkit-backdrop-filter: blur(var(--bgc-blur)) saturate(var(--bgc-saturate)); backdrop-filter: blur(var(--bgc-blur)) saturate(var(--bgc-saturate)); z-index: 9; box-shadow: none; }
+a.tip_i, a.tip_i:link, a.tip_i:visited, a.tip_i:active, a.reply-plus-one { color: #686868; }
+a.reply-plus-one { border: 1px solid #686868; }
+div.re_info, div.re_info a, .tip_j { color: #686868; }
+div.SimpleSidePanel { border-radius: 8px; }
+#searchHomeBox ul.cat li a, .indexCatBox ul.cat li a { color: #7d7d7d !important; border-radius: 7px; box-shadow: none; }
+img.cover { border-radius: 6px; }
+#headerProfile div.subjectNav { border: none; margin-bottom: 0; }
+/* #headerProfile, .mainWrapper, #main.png_bg, #columnSearch, div#main { width: 90%; margin: auto; }   -- 注释掉：bgm.tv 官方 CSS 已将内容中心化在 1000px，再加 90% 会导致多余白边 */
+.tab_button { color: #000; }
+span.count { filter: saturate(0); }
+span.description, small.alarm { color: #000000f5; }
+q { color: #767680; }
+span.tip_i { color: rgb(83,79,104); }
+ul { z-index: 99; }
+span.userInfo { z-index: 99; }
+table.forumtable { border: 2px; border-color: white; }
+.columns.clearit { margin: auto; }
+div[style*="width:800px; margin:0 auto; overflow:hidden"] { transform: translate(0,10%); }
+.columnsApp.clearit { margin-top: 5px; margin-bottom: 100px; }
+div.SidePanel h2, div.SidePanelLow h2 { text-shadow: none; }
+#slider { width: 95%; margin-right: 2.5%; }
+#sliderContainer { border: none; }
+div.ui-widget-content { border: 1px solid #b4b4b4; }
+.ui-state-default, .ui-widget-content .ui-state-default { border-radius: 40%; background: white; border: 1px solid #666; }
+#eden_tpc_list { margin-top: -1px; }
+.indexCatBox ul.cat li a.add { color: grey; }
+.indexCatBox ul.cat li a.add:hover { color: #F09199; }
+div.row_reply { margin-bottom: 7px; border-radius: 10px; }
+#comment_list { box-shadow: none; }
+input.inputBtn, a.fancyBtn { border-radius: 5px; border: none; }
+table.topic_list { font-size: 13px !important; }
+div.grp_box { border: 1px solid #F0F0F0; }
+table.topic_list td.subject, table.topic_list th.subject { padding: 10px; }
+.shareBtn { opacity: 0; position: fixed; z-index: -1000; }
+div.eden_rec_box { border-radius: 20px; }
+a.selected { border: 1px solid #c4c4c4bd !important; }
+a.chiiBtn { box-shadow: none; border-radius: 4px; padding: 5px 10px; text-shadow: none; border: none; }
+div.collectBlock p.collectModify { box-shadow: none; }
+#comment_list div.row_reply:first-child, #comment_list div.row_reply:last-child { border-radius: 10px; border: 1px solid #F0F0F0; }
+blockquote.intro { border-radius: 15px; border: 1px solid #F0F0F0; }
+table.forumtable th { padding: 8px; }
+div.subject_tag_section a.l { margin: 2px; transition: .5s; }
+div.subject_tag_section a.l:hover small { color: #484848; }
+div.subject_tag_section div.inner { padding-right: 5px; }
+li.doujin { z-index: -1; position: fixed; opacity: 0; }
+ul.navTabs { background: rgba(var(--bgc-glass),0) !important; border: none; }
+.subjectNav .navTabs { width: 100%; }
+.infobox_container .infobox_expand { border: none; border-radius: 4px; }
+.infobox_container .infobox_expand a { border-radius: 4px; }
+#comment_list div.row_state { border-radius: 4px !important; }
+div.reply_highlight { border-color: #88c5ff82 !important; }
+/* #wrapperNeue { min-width: 100% !important; }   -- 注释掉：会导致全站页面撑满屏，与其他 width:90% 规则冲突产生白条 */
+ul.secTab li a.selected, ul.secTab li a.focus, ul.secTab li a:hover { color: black; }
+#columnCrtBrowserA { border-radius: 10px; }
+#timeline ul li span.info, #columnTimelineInnerWrapper ul.timelineTabs, #columnTimelineInnerWrapper, #columnTimelineInnerB { border: none; }
+#timeline ul li.tml_item .comment { border: none; }
+.mosaic-tile { padding: 5px; border-radius: 10px; }
+ul.secTab li a, ul.secTab li:first-child a { padding: 5px 10px; text-shadow: none; box-shadow: none; border: none; }
+a.selected { box-shadow: none; padding: 4px 9px 4.5px 9px !important; }
+ul.secTab li a:hover { box-shadow: none; }
+div.menu_inner { box-shadow: none; }
+#navMenuNeue li a.focus { color: var(--primary-color, rgb(204,129,146)); }
+a.btnBlue, a.btnBlueSmall { color: black; padding: 10px 20px; border-radius: 5px; }
+#rakuen_infobox { width: 200px; }
+#headerProfile h1 span { color: black; }
+a.chiiBtn:hover { box-shadow: none; }
+#show-diff-view-side-by-side { width: 90%; }
+ul#infobox li.sub, ul#infobox li.sub_section, ul#infobox li.sub_group { border: none; }
+#headerSubject span.collect a { line-height: 20px; }
+ul#infobox li .tag { border: 1px solid #0084B4; }
+a.cover:hover img.cover { padding: 0; }
+
+/* ========== 小组标题居中 ========== */
+/* .columns.clearit 原为 rgba(var(--bgc-glass),.3) 硬编码：它在 div#main 玻璃底板之上又叠一层浓淡
+   与周边区域不同的白雾，是"同一网页不同区域玻璃不一致"的来源之一，归一为透明 */
+.columns.clearit { background: rgba(var(--bgc-glass),var(--0)); }
+
+/* ========== 封面 hover 放大（条目页） ========== */
+img.cover:hover { height: 95%; width: 95%; box-shadow: 0 0 12px black; transition: all .5s; }
+img.cover { margin: auto; height: 68%; width: 68%; box-shadow: none; transition: all .5s; }
+
+/* ========== 封面放大（搜索/排行榜） ========== */
+ul.browserFull li.item img.cover { max-width: 100px; }
+.columns.clearit { display: -webkit-box; -webkit-box-pack: center; }
+img.cover:hover { box-shadow: 0 0 12px black; height: 100%; width: 100%; transition: all .5s; }
+#columnSearchA { margin-right: 0; }
+
+/* 角色页封面 bug 排除 */
+img.cover[src*="//lain.bgm.tv/pic/crt"] { box-shadow: none; transition: all .5s; }
+img.cover[src*="//lain.bgm.tv/pic/crt"]:hover { box-shadow: 0 0 12px black; transition: all .5s; }
+
+/* ========== 标题居中（原 Stylus 限定了页面范围，扁平化后与其他规则冲突，已注释） ========== */
+/* #header { padding: 20px; }
+h1 { display: block !important; text-align: center; }
+#headerSubject, div.mainWrapper { margin-left: auto; padding-top: 10px; padding-bottom: 10px; }
+#headerSubject div.subjectNav { width: 100%; height: 40px; text-align: center; }
+#headerSubject { padding-bottom: 0; }
+.subjectNav .navTabs { display: inline-block; width: auto !important; text-align: center; height: 20px; line-height: 20px; margin-top: 10px; } */
+
+/* 讨论/日志页 h1 左对齐（已注释：原限定 blog/topic，扁平化后误伤全部页面） */
+/* #headerSubject div.subjectNav { text-align: left !important; }
+h1 { display: block !important; text-align: left !important; } */
+
+/* ========== Wiki 界面 ========== */
+input.multiKeyAdd {
+  background: #a7db9c url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='white'%3E%3Cpath d='M19 11H13V5h-2v6H5v2h6v6h2v-6h6z'/%3E%3C/svg%3E") no-repeat center center;
+  border-radius: 50%; border: 1.5px solid #85bf79; box-shadow: rgba(0,0,0,.2) 0px 4px 8px;
+}
+
+/* Wiki 统计 */
+ul.wikiStats li { background: rgba(var(--bgc-glass),.5); border: none; box-shadow: none; margin: 3.5px; }
+ul.wikiScrollBlock { border-radius: 10px; }
+.user_list .cell.name { background: none; }
+#comment_box .text, #comment_box .text_pm, .comment_box { background: rgba(var(--bgc-glass),.5); }
+
+/* ========== 个人主页 ========== */
+#columnA { margin: 5px 0 0 0; }
+#columnTimelineInnerWrapper, #columnTimelineInnerWrapper ul.timelineTabs, div.SidePanelMini { background: rgba(var(--bgc-glass),.3); }
+.line_odd, .line_even { background: rgba(var(--bgc-glass),0); border: none; }
+#columnTimelineInnerB { background-color: rgba(var(--bgc-glass),0); }
+#columnTimelineInnerB div.TsukkmiBox { background: rgba(var(--bgc-glass),0); }
+ul.navTabs { background: rgba(var(--bgc-glass),var(--0)) !important; border: none; }
+
+/* ========== 图片优化 ========== */
+.pictureFrameGroup .overlay { background: none; }
+img { image-rendering: -webkit-optimize-contrast; border-radius: 5px; }
+
+/* ========== 组件页（原限定 dev/app，已注释避免全局生效） ========== */
+/* .subjectNav .navTabs, #header { width: 1000px !important; margin: 0 auto; }
+#header { background: none; } */
+
+/* ========== BRRS 关联 ========== */
+.brrs-editor-item, .brrs-editor-item:hover {
+  border-radius: 15px; background: rgba(var(--bgc-glass),0);
+  padding: 15px 10px; margin: 10px 0; border: none;
+}
+.brrs-previewer-item { background: rgba(var(--bgc-glass),.4); border-radius: 15px; margin-bottom: 80px; }
+
+/* ========== 制作人员页 ========== */
+ul.line_list li.cat { border: none; position: relative; }
+ul.line_list li.cat::after {
+  content: ""; position: absolute; bottom: 0; left: 1%;
+  width: 98%; height: 1.2px; background-color: #00000036;
+}
+ul.sideEpList li.odd { background: rgba(var(--bgc-glass),.4); margin: 4px 0; }
+
+/* ========== 用户页封面比例 ========== */
+ul.coversSmall li { height: 140px; }
+.pictureFrameGroup { height: 103px; }
+.pictureFrameGroup .image { height: 100px; border-radius: 5px; }
+.pictureFrameGroup .overlay { height: 103px; }
+.pictureFrameGroup .image img { height: 100% !important; }
+
+/* ==== 关灯模式覆盖 ==== */
+html.bgc-dark rect[data-count="0"] { fill: #2a2a32; }
+html.bgc-dark .tab_button { color: #ddd; }
+html.bgc-dark span.description, html.bgc-dark small.alarm { color: #ccc; }
+html.bgc-dark #headerProfile h1 span { color: #eee; }
+html.bgc-dark a.btnBlue, html.bgc-dark a.btnBlueSmall { color: #ddd; }
+html.bgc-dark ul.secTab li a.selected, html.bgc-dark ul.secTab li a.focus, html.bgc-dark ul.secTab li a:hover { color: #eee; }
+html.bgc-dark .ui-state-default, html.bgc-dark .ui-widget-content .ui-state-default { background: #444; border-color: #888; }
+html.bgc-dark div.ui-widget-content { border-color: #555; }
+html.bgc-dark #searchHomeBox ul.cat li a, html.bgc-dark .indexCatBox ul.cat li a { color: #aaa !important; }
+html.bgc-dark div.grp_box { border-color: #3a3a44; }
+html.bgc-dark #comment_list div.row_reply:first-child, html.bgc-dark #comment_list div.row_reply:last-child { border-color: #3a3a44; }
+html.bgc-dark blockquote.intro { border-color: #3a3a44; }
+html.bgc-dark a.tip_i, html.bgc-dark a.tip_i:link, html.bgc-dark a.tip_i:visited, html.bgc-dark a.tip_i:active, html.bgc-dark a.reply-plus-one { color: #999; }
+html.bgc-dark a.reply-plus-one { border-color: #999; }
+html.bgc-dark div.re_info, html.bgc-dark div.re_info a, html.bgc-dark .tip_j { color: #999; }
+html.bgc-dark span.tip_i { color: #a09cbc; }
+html.bgc-dark q { color: #999; }
+html.bgc-dark small.grey { color: #8a8a92; }
+html.bgc-dark #header > small.grey { color: #aaa; }
+html.bgc-dark .indexCatBox ul.cat li a.add { color: #999; }
+html.bgc-dark #navMenuNeue li a.focus { color: rgb(220,150,170); }
+html.bgc-dark ul.line_list li.cat::after { background-color: rgba(255,255,255,.15); }
+html.bgc-dark a.selected { border-color: #555 !important; }
+html.bgc-dark #anime-schedule-container { color: #ccc; }
+/* 配置面板 & 齿轮按钮暗色 */
+html.bgc-dark #bg-custom-btn { background: rgba(50,50,60,.9) !important; color: #bbb !important; border-color: #555 !important; }
+html.bgc-dark #bg-custom-panel { background: #2a2a34 !important; color: #ccc !important; box-shadow: 0 8px 32px rgba(0,0,0,.5) !important; }
+html.bgc-dark #bg-custom-panel .bg-popup-title { color: #eee !important; }
+html.bgc-dark #bg-custom-panel .bg-mode-btn { border-color: #555 !important; }
+html.bgc-dark #bg-custom-panel input[type="text"], html.bgc-dark #bg-custom-panel select { background: #333 !important; color: #ddd !important; border-color: #555 !important; }
+html.bgc-dark #bg-custom-panel #bg-btn-reset { background: #3a3a44 !important; color: #aaa !important; border-color: #555 !important; }
+html.bgc-dark #bg-custom-panel .bg-hint { color: #888 !important; }
+html.bgc-dark #bg-custom-panel .bg-hint a { color: #e0a050 !important; }
+
+/* ==== 关灯毛玻璃 ====
+   主内容容器加模糊+提饱和，让透出的背景图柔化成发光磨砂，而非平的深色块；
+   saturate 抵消深色叠层带来的发暗/发灰，使色彩「活」起来。
+   模糊度/饱和度通过 --bgc-blur / --bgc-saturate 变量统一，与亮色模式共享同一套参数。
+
+   层叠策略（以讨论页为例）：
+     div#main [blur]              ← 第 1 层：全站内容底板
+       .mainWrapper (无 blur)     ← 仅极淡底色，不加模糊，避免多余层
+         div.row_reply [blur]     ← 第 2 层：回帖卡片自带模糊
+         div.SidePanel  [blur]    ← 第 2 层：侧栏自带模糊（base CSS 已有）
+         blockquote.intro [blur]  ← 第 2 层：简介卡片
+   回帖卡片与侧栏同为 2 层模糊，视觉和谐统一；
+   卡片间的间隙仅 1 层模糊，形成自然层次感。 */
+html.bgc-dark div#main,
+html.bgc-dark #headerNeue2,
+html.bgc-dark #footer,
+html.bgc-dark #bgm-calendar-timeline,
+html.bgc-dark #bangumi-calendar-timeline-no-api {
+  -webkit-backdrop-filter: blur(var(--bgc-blur)) saturate(var(--bgc-saturate));
+  backdrop-filter: blur(var(--bgc-blur)) saturate(var(--bgc-saturate));
+}
+/* 关灯正文光晕：深色底上浅色文字加暗色微光晕，抵消背景图亮部对文字的干扰（与亮色 rgba 白光晕对应） */
+html.bgc-dark div#main { text-shadow: 0 1px 1px rgba(0,0,0,.45); }
+/* 内容卡片级模糊：回帖、简介在 div#main 模糊之上再加一层，
+   与 SidePanel（base CSS 已有 backdrop-filter）保持相同层数，和谐统一 */
+html.bgc-dark div.row_reply,
+html.bgc-dark blockquote.intro {
+  -webkit-backdrop-filter: blur(var(--bgc-blur)) saturate(var(--bgc-saturate));
+  backdrop-filter: blur(var(--bgc-blur)) saturate(var(--bgc-saturate));
+}
+/* 注：左侧中间容器透明化、#prgManager 去模糊、.day-block/.day-label 关灯覆盖
+   已移至亮色基础规则中统一处理（中间层 var(--0) 透明 + #prgManager 无 backdrop-filter），
+   bangumi_week_blocks 的 .day-block/.day-label 通过 --bgc-glass 变量自动适配关灯色，无需 !important 覆盖。 */

@@ -1,0 +1,89 @@
+
+      :root {
+        --bg-custom: linear-gradient(to right, #fabbbb, #ee8292);
+        --bg-opacity: 1;
+        --b0: 0;
+        --b4: 0.4000000000000001; --b5: 0.5; --b6: 0.6000000000000001; --b7: 0.7000000000000001; --b8: 0.8; --b9: 0.9000000000000001;
+      }
+
+      /* 全屏背景图 */
+      html::after {
+        content: ''; height: 100%; width: 100%;
+        position: fixed; top: 0; left: 0; opacity: 0.75;
+        background: var(--bg-custom);
+        background-size: cover;
+        z-index: -1;
+      }
+
+      /* ==== 玻璃统一：模糊/饱和一律走 --bgc-blur / --bgc-saturate（旧版这里 4px/3px、
+         bg_custom 是 12px，同页玻璃质感割裂）。!important 规则必须同时给出浅色与
+         html.bgc-dark 深色变体，否则深色时会被浅色规则盖掉 ==== */
+
+      /* 时间轴工具栏毛玻璃 */
+      .bct-toolbar {
+        background: rgba(var(--bgc-glass),var(--b7)) !important;
+        border-radius: 8px;
+        padding: 8px 12px 10px !important;
+        margin-bottom: 8px;
+        -webkit-backdrop-filter: blur(var(--bgc-blur)) saturate(var(--bgc-saturate));
+        backdrop-filter: blur(var(--bgc-blur)) saturate(var(--bgc-saturate));
+      }
+      html.bgc-dark .bct-toolbar { background: rgba(var(--bgc-glass),var(--b7)) !important; }
+
+      /* 每日卡片毛玻璃 */
+      .bct-day {
+        background: rgba(var(--bgc-glass),var(--b7)) !important;
+        -webkit-backdrop-filter: blur(var(--bgc-blur)) saturate(var(--bgc-saturate));
+        backdrop-filter: blur(var(--bgc-blur)) saturate(var(--bgc-saturate));
+      }
+      html.bgc-dark .bct-day {
+        background: rgba(var(--bgc-glass),var(--b7)) !important;
+        border-color: rgba(255,255,255,.12) !important;
+      }
+      .bct-day.today {
+        background: rgba(var(--bgc-glass),var(--b8)) !important;
+      }
+      html.bgc-dark .bct-day.today {
+        background: rgba(var(--bgc-glass),var(--b8)) !important;
+      }
+
+      /* 卡片头部虚线分隔改为半透明 */
+      .bct-day-head { border-bottom-color: rgba(0,0,0,.08) !important; }
+      html.bgc-dark .bct-day-head { border-bottom-color: rgba(255,255,255,.1) !important; }
+
+      /* 条目悬停半透明 */
+      .bct-ep:hover { background: rgba(var(--bgc-glass),var(--b4)); }
+      html.bgc-dark .bct-ep:hover { background: rgba(255,255,255,.08); }
+
+      /* 导航按钮毛玻璃 */
+      .bct-toolbar .bct-nav button {
+        background: rgba(var(--bgc-glass),var(--b6)) !important;
+      }
+      html.bgc-dark .bct-toolbar .bct-nav button {
+        background: rgba(var(--bgc-glass),var(--b5)) !important;
+        color: #ccc !important;
+      }
+      .bct-toolbar .bct-nav button:hover {
+        background: rgba(var(--bgc-glass),var(--b8)) !important;
+      }
+      html.bgc-dark .bct-toolbar .bct-nav button:hover {
+        background: rgba(var(--bgc-glass),var(--b7)) !important;
+        color: #eee !important;
+      }
+
+      /* 脚注：原 b4(≈40%) 黑过淡导致难读，提高对比 */
+      .bct-foot { color: rgba(0,0,0,.55) !important; }
+      html.bgc-dark .bct-foot { color: rgba(255,255,255,.6) !important; }
+
+      /* 覆盖原页面元素：让它们也半透明以显示背景 */
+      #headerNeue2 {
+        background: rgba(var(--bgc-glass),var(--b7)) !important; box-shadow: none; border: none;
+        -webkit-backdrop-filter: blur(var(--bgc-blur)) saturate(var(--bgc-saturate));
+        backdrop-filter: blur(var(--bgc-blur)) saturate(var(--bgc-saturate));
+      }
+      html.bgc-dark #headerNeue2 { background: rgba(var(--bgc-glass),var(--b7)) !important; border-bottom-color: rgba(255,255,255,.1); }
+      #footer #footerLinks { background: rgba(var(--bgc-glass),var(--b6)) !important; }
+      html.bgc-dark #footer #footerLinks { background: rgba(var(--bgc-glass),var(--b6)) !important; }
+      #navNeue2 #navMenuNeue li a.chl { background: rgba(var(--bgc-glass),var(--b5)) !important; }
+      html.bgc-dark #navNeue2 #navMenuNeue li a.chl { background: rgba(var(--bgc-glass),var(--b5)) !important; }
+    

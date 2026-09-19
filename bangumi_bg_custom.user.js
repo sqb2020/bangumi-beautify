@@ -2,9 +2,9 @@
 // @name         Bangumi 自定义背景与毛玻璃
 // @name:zh-CN   Bangumi 自定义背景与毛玻璃
 // @namespace    https://bgm.tv/
-// @version      1.0.0
-// @description  自定义 bgm.tv 全站背景图片/颜色/渐变，可调透明度实现毛玻璃效果。基于 rabbitohh 的 bangumi-css 项目改造，适配油猴和超合金组件
-// @description:zh-CN 自定义 bgm.tv 全站背景+毛玻璃，支持油猴和超合金组件
+// @version      1.8.0
+// @description  自定义 bgm.tv 全站背景图片/颜色/渐变，可调透明度实现毛玻璃效果；与站点原生深色模式（html[data-theme]）双向同步，全区域统一玻璃参数。基于 rabbitohh 的 bangumi-css 项目改造，适配油猴和超合金组件
+// @description:zh-CN 自定义 bgm.tv 全站背景+毛玻璃；深色模式与站点原生开关互通，玻璃效果全区域统一；支持油猴和超合金组件
 // @author       qbs (based on rabbitohh's bangumi-css)
 // @include      https://bgm.tv/*
 // @include      https://bangumi.tv/*
@@ -69,15 +69,37 @@
       const l = level * 0.1;
       return `calc((${opacity} * ${l}) / (1 + ${opacity} * ${l} - ${l}))`;
     };
-    return `
-/* ==== CSS 变量 ==== */
+    let css = `
+/* ==== CSS 变量 ====
+   --bgc-glass / --bgc-blur / --bgc-saturate 是全站玻璃的唯一事实源：
+   本脚本与 bangumi_calendar_timeline(.no_api) / bangumi_week_blocks 共用同值定义，
+   任何脚本注入先后都不影响最终参数（值相同即无冲突），保证同一网页所有区域玻璃一致 */
 :root {
   --bg-custom: ${bg};
   --bg-opacity: ${opacity};
+  --bgc-glass: 255, 255, 255;
+  /* 统一毛玻璃参数：所有面板/卡片/侧边栏共享同一模糊度与饱和度，
+     确保主内容区(.day-block)与侧边栏(SidePanel)视觉完全一致 */
+  --bgc-blur: 12px;
+  --bgc-saturate: 160%;
+  color-scheme: light;
   --0: 0;
   --1: ${a(1)}; --2: ${a(2)}; --3: ${a(3)}; --4: ${a(4)}; --5: ${a(5)};
   --6: ${a(6)}; --7: ${a(7)}; --8: ${a(8)}; --9: ${a(9)}; --10: ${a(10)};
   --35: ${a(3.5)}; --45: ${a(4.5)}; --65: ${a(6.5)}; --77: ${a(7.7)}; --85: ${a(8.5)};
+}
+/* ==== 关灯模式变量 ====
+   深色判定与站点原生 html[data-theme="dark"]（官方关灯开关/系统偏好）同步，
+   由 JS 在 html 上切换 bgc-dark 类 */
+html.bgc-dark {
+  /* 关灯玻璃底色：用「保色相」的深冷色而非中灰。
+     中灰（如 38,38,46）与背景图混合会把色彩去饱和成统一深灰浆糊——即「毛玻璃全是深色、只有深浅不同」；
+     近黑的深冷色只压暗、不去色，面板因而透出背景图本身的丰富色彩，配合下方 backdrop-filter 成为发光毛玻璃。
+     注意：此值与 companion 脚本里的 fallback 保持一致（16,18,28），不得单方面修改 */
+  --bgc-glass: 16, 18, 28;
+  --bgc-blur: 12px;
+  --bgc-saturate: 150%;
+  color-scheme: dark;
 }
 
 /* ==== 背景图片（全站） ==== */
@@ -117,32 +139,36 @@ a.epBtnWatched:hover { border: 1px solid #00A8FF !important; padding-top: 5px !i
 a.epBtnUnknown:hover, a.epBtnAir:hover { border: 1px solid #00A8FF !important; padding-top: 5px !important; background-color: #cddaed; transition: .5s; }
 a.epBtnToday:hover { padding-top: 5px !important; background-color: #a8e398; border: #28674e 1px solid; transition: .5s; }
 a.epBtnNA:hover { padding-top: 5px !important; background-color: #cac9c9; border: #28674e 1px solid; transition: .5s; }
-.epv_popu_default { width: 90%; }
+/* 集数悬停弹出层：不透明背景 + 高 z-index，防止被毛玻璃层遮挡或透出模糊 */
+.epv_popu_default { width: 90%; background: rgba(255,255,255,.97) !important; z-index: 99999 !important; position: relative; border-radius: 8px; box-shadow: 0 4px 24px rgba(0,0,0,.3); }
 
-/* ==== 404 / 通用头部 ==== */
-#headerNeue2 { background: rgba(255,255,255,.7); border: none; box-shadow: none; }
-#footer #footerLinks { border-radius: 10px; background: rgba(255,255,255,.6); }
-#navNeue2 #navMenuNeue li a.chl { background: rgba(255,255,255,.5); }
+/* ==== 404 / 通用头部 ====
+   原 .5/.6/.7 硬编码与下方 token 版重复且取值不一致（同页不同区域玻璃忽浓忽淡），已删除，
+   统一由「首页样式优化」与「内页透明化」里的 var(--7)/var(--6) 规则承担 */
 
 /* ========== 首页样式优化 ========== */
 #headerNeue2 { background: rgba(255,255,255,var(--7)); border: none; box-shadow: none; }
 a.chl:hover, a.chl { transition: 0.5s; }
-.halfPage.sort.ui-draggable { background: rgba(255,255,255,var(--9)); }
+/* 左侧中间容器透明化：消除 .halfPage / #prgManagerMain / #prgManagerHeader 的不透明背景，
+   使 .day-block 与 SidePanel 同为单层毛玻璃，左右视觉完全统一 */
+.halfPage.sort.ui-draggable { background: rgba(255,255,255,var(--0)); }
 .sidePanelHome { background: rgba(255,255,255,var(--0)); }
 #home_calendar { background: rgba(255,255,255,var(--6)); }
 .clearit.week { border: none; }
-#prgManagerMain, input.inputtext { background: rgba(255,255,255,var(--7)); }
+#prgManagerMain { background: rgba(255,255,255,var(--0)); }
+input.inputtext { background: rgba(255,255,255,var(--7)); }
 #cloumnSubjectInfo a.prgCheckIn, ul#prgSubjectList li a.prgCheckIn { background: rgba(255,255,255,var(--0)); }
-#prgManagerHeader { background: rgba(255,255,255,var(--7)); border: none; }
+#prgManagerHeader { background: rgba(255,255,255,var(--0)); border: none; }
 #cloumnSubjectInfo div.header, #cloumnSubjectInfo div.moreEp, ul#prgSubjectList.list li.sep, ul#prgSubjectList.full li.sep { background: rgba(255,255,255,var(--0)); border: none; }
 ul#prgSubjectList.full { background: rgba(255,255,255,var(--0)); }
 ul#prgSubjectList.full li p.listProgress span { background: rgba(65,180,218,var(--4)); border: none; }
 ul#prgSubjectList.full li, div.sidePanelHome h2 { border: none; }
 #home_calendar, ul.calendarMini div.coverList { border: none; }
 ul.calendarMini div.coverList { background: rgba(255,255,255,var(--0)); }
-small.grey { color: #a3a3a3; }
+small.grey { color: #8f8f8f; }
 ul.calendarMini li, ul.calendarMini li.Sat, ul.calendarMini li.Mon, ul.calendarMini li.Tue, ul.calendarMini li.Wed, ul.calendarMini li.Thu, ul.calendarMini li.Fri, ul.calendarMini li.Sun { background: rgba(255,255,255,var(--0)); color: grey; border: none; }
-.halfPage.sort.ui-draggable, textarea.quick { padding-top: 5px; background: rgba(255,255,255,var(--6)); border-radius: 10px; }
+.halfPage.sort.ui-draggable { padding-top: 5px; background: rgba(255,255,255,var(--0)); border-radius: 10px; }
+textarea.quick { padding-top: 5px; background: rgba(255,255,255,var(--6)); border-radius: 10px; }
 .line_odd, .line_even { background: rgba(255,255,255,var(--0)); border: none; }
 #footer #footerLinks { background: rgba(255,255,255,var(--6)); border-radius: 10px; }
 #columnTimelineInnerWrapper, #columnTimelineInnerWrapper ul.timelineTabs { background: rgba(255,255,255,var(--4)); }
@@ -174,19 +200,32 @@ textarea.quick:focus, textarea.reply:focus, textarea.reply { background: rgba(25
 #navNeue2 #navMenuNeue li a.chl { background: rgba(255,255,255,var(--5)); }
 #anime-schedule-container { background: rgba(255,255,255,var(--5)); color: #343434; }
 ul.sideTpcList .row:nth-child(odd), ul.sideTpcList .row:nth-child(2n), ul.timeline li, #prgManager { border: none; }
-#prgManager, #home_calendar, .sort, #anime-schedule-container { backdrop-filter: blur(5px); }
+/* #prgManager / .sort 均不加 backdrop-filter：
+   .sort(.halfPage.sort.ui-draggable) 背景已透明，若再加 blur 会在左侧产生多余模糊层
+   （div#main blur → .sort blur → .day-block blur = 3层），
+   而右侧仅 div#main blur → SidePanel blur = 2层，导致左右毛玻璃色彩不一致。
+   去掉 .sort blur 后左右均为 2 层，视觉统一。 */
+#home_calendar, #anime-schedule-container { -webkit-backdrop-filter: blur(var(--bgc-blur)) saturate(var(--bgc-saturate)); backdrop-filter: blur(var(--bgc-blur)) saturate(var(--bgc-saturate)); }
 #prgManagerMain div.cloumnSubjects { border-right: #bfbfbf94 2px solid; }
 #timeline ul li span.info { border: none; }
 
 /* ========== 内页透明化 ========== */
-div#main { background: rgba(255,255,255,var(--4)); }
+/* div#main 是全站内容底板：亮色模式同样加 backdrop-filter，与深色模式及 SidePanel/头部保持
+   相同的磨砂层数（此前只有深色模糊、亮色不模糊，同一网页不同区域玻璃质感不一致）；
+   text-shadow 给正文加一层同色微光晕，提高毛玻璃上的文字可读性（深色模式在尾部有对应深色光晕） */
+div#main {
+  background: rgba(255,255,255,var(--4));
+  -webkit-backdrop-filter: blur(var(--bgc-blur)) saturate(var(--bgc-saturate));
+  backdrop-filter: blur(var(--bgc-blur)) saturate(var(--bgc-saturate));
+  text-shadow: 0 1px 1px rgba(255,255,255,.14);
+}
 .indexCatBox ul.cat li a.add, .indexCatBox ul.cat li a.add:hover { background: rgba(255,255,255,var(--0)); }
 #user_home div.userSynchronize { background: rgba(255,255,255,var(--6)); }
 ul.sideEpList li.even { background: rgba(255,255,255,var(--4)); }
 ul.sideEpList li.cur { background: rgba(98,114,178,var(--77)) !important; }
 #columnTimelineA #SayInput { background: rgba(255,255,255,var(--6)); }
 ul#crtRelateSubjects li.old { background: rgba(255,255,255,var(--0)); }
-div.SidePanel, div.SidePanelLow { background: rgba(255,255,255,var(--4)); backdrop-filter: blur(5px); }
+div.SidePanel, div.SidePanelLow { background: rgba(255,255,255,var(--4)); -webkit-backdrop-filter: blur(var(--bgc-blur)) saturate(var(--bgc-saturate)); backdrop-filter: blur(var(--bgc-blur)) saturate(var(--bgc-saturate)); }
 #eden_tpc_list ul li.line_odd:hover, #eden_tpc_list ul li.line_even:hover { background: rgba(255,255,255,var(--7)); }
 div.subject_tag_section a.l { background: rgba(255,255,255,var(--7)); }
 table.forumtable { background: rgba(255,255,255,var(--4)); }
@@ -203,7 +242,7 @@ div.eden_rec_box { background: rgba(255,255,255,var(--5)); }
 ul#browserItemList { background: rgba(255,255,255,var(--0)); }
 div.infobox .modifyTool { background: rgba(255,255,255,var(--5)); }
 #columnNotifyA div.even { background: rgba(255,255,255,var(--4)); }
-#main.png_bg { background: rgba(255,255,255,var(--35)); }
+#main.png_bg { background: rgba(255,255,255,var(--4)); }
 ul.timelineTabs li a.focus, ul.timelineTabs li a.top_focus { background: rgba(255,255,255,var(--7)); }
 .grp_box.clearit { background: rgba(255,255,255,var(--35)); }
 #columnB, #pageHeader { background: rgba(255,255,255,var(--0)); }
@@ -213,14 +252,17 @@ ul.browserFull li.item.even { background: rgba(255,255,255,var(--0)); }
 select.form { background: rgba(255,255,255,var(--5)); }
 input.btnPink, input.btnGray { background: #ff4a5952; }
 #comment_list { background: rgba(255,255,255,var(--0)); }
-#header { background: rgba(255,255,255,var(--35)); }
-.mainWrapper { background: rgba(255,255,255,var(--3)); }
+/* #header / #headerSubject / .subject_section 等标题·导航区域改为透明或极淡底色，
+   避免在 div#main 毛玻璃之上形成突兀色带横条（讨论页/条目页尤其明显） */
+#header { background: rgba(255,255,255,var(--0)); }
+/* .mainWrapper 只保留下面这条 var(--4) 规则：原先其上方的 var(--3) 与其下方的 var(--4)
+   重复定义同一元素，取值还不一致，属同页玻璃不一致的来源，已合并 */
 .mainWrapper, #comment_box .text, #comment_box .text_pm, .line_odd, .line_even, ul.line_list_music li.cat, ul.line_list li.cat { background: rgba(255,255,255,var(--4)); }
-#grailBox2, ul.timelineTabs { background: rgba(255,255,255,var(--65)); }
+#grailBox2, ul.timelineTabs { background: rgba(255,255,255,var(--3)); }
 #footer { background: rgba(255,255,255,var(--4)); }
-.temples.tab_page_item.tab_page_item_0 { background: rgba(255,255,255,var(--65)); }
-#headerSubject { background: rgba(255,255,255,var(--6)); }
-.subject_section.clearit { background: rgba(255,255,255,var(--65)); }
+.temples.tab_page_item.tab_page_item_0 { background: rgba(255,255,255,var(--3)); }
+#headerSubject { background: rgba(255,255,255,var(--2)); }
+.subject_section.clearit { background: rgba(255,255,255,var(--3)); }
 tbody { background: rgba(255,255,255,var(--0)); }
 hr.board, div#collect_title, #ChartWarpper .chart_desc { background: rgba(255,255,255,var(--0)); }
 a.btnGreenSmall.rr { background: rgba(30,181,176,var(--45)); }
@@ -229,8 +271,8 @@ a.btnRedSmall.rr { background: rgba(200,106,106,var(--45)); }
 #headerNeue2 { background: rgba(255,255,255,var(--7)); }
 div.grp_box { background: rgba(255,255,255,var(--5)); }
 table.topic_list tr.header { background: rgba(255,255,255,var(--2)); }
-#headerProfile div.subjectNav { background: rgba(255,255,255,var(--35)); }
-#headerProfile .headerContainer { background: rgba(255,255,255,var(--5)); }
+#headerProfile div.subjectNav { background: rgba(255,255,255,var(--0)); }
+#headerProfile .headerContainer { background: rgba(255,255,255,var(--2)); }
 blockquote.intro { background: rgba(255,255,255,var(--4)); }
 div.row_reply { background: rgba(255,255,255,var(--5)); }
 a.chiiBtn { background: rgba(255,255,255,var(--5)); }
@@ -244,7 +286,13 @@ ul.browserFull li.item span.rank, a.selected { background: #ff99bf4f !important;
 textarea#content { background: rgba(255,255,255,var(--5)) !important; }
 .modifyTool { opacity: var(--9); }
 div#footer ul#footerLinks { opacity: var(--9); }
-#cluetip { opacity: var(--85); }
+/* 集数悬停弹出窗口（cluetip）：
+   原 opacity:var(--85) 让弹出窗整体半透明，在毛玻璃页面上如同隔雾看花；
+   改为不透明背景 + 高 z-index，确保弹出窗浮于毛玻璃层之上、清晰可读。
+   rgba(255,255,255,.97) 在 dark 模式下经 replaceAll 变为 rgba(var(--bgc-glass),.97)
+   即 97% 不透明深色背景，与页面毛玻璃和谐但不会被"吞没"。 */
+#cluetip { opacity: 1 !important; z-index: 99999 !important; background: rgba(255,255,255,.97) !important; border-radius: 8px; box-shadow: 0 4px 24px rgba(0,0,0,.3); }
+#cluetip #cluetip-inner { background: rgba(255,255,255,.95) !important; }
 #timeline ul li.tml_item .card { background: rgba(255,255,255,var(--6)); }
 #timeline ul li.tml_item .card.card_tiny .container { background: rgba(255,255,255,var(--0)); }
 ul.sideTpcList .row:nth-child(odd) { background: rgba(255,255,255,var(--0)); }
@@ -304,7 +352,7 @@ div.SimpleSidePanel h2, div.user_box, ul#crtRelateSubjects li.old, ul.ajaxSubjec
 #eden_tpc_list ul li.line_even { transition: 0.8s; }
 a.chl:hover, a.chl { transition: 0.5s; }
 img.cover, img.cover:hover { padding: 0; border: 0; }
-#headerNeue2, div.codeHighlight { backdrop-filter: blur(3px); z-index: 9; box-shadow: none; }
+#headerNeue2, div.codeHighlight { -webkit-backdrop-filter: blur(var(--bgc-blur)) saturate(var(--bgc-saturate)); backdrop-filter: blur(var(--bgc-blur)) saturate(var(--bgc-saturate)); z-index: 9; box-shadow: none; }
 a.tip_i, a.tip_i:link, a.tip_i:visited, a.tip_i:active, a.reply-plus-one { color: #686868; }
 a.reply-plus-one { border: 1px solid #686868; }
 div.re_info, div.re_info a, .tip_j { color: #686868; }
@@ -316,7 +364,7 @@ img.cover { border-radius: 6px; }
 .tab_button { color: #000; }
 span.count { filter: saturate(0); }
 span.description, small.alarm { color: #000000f5; }
-q { color: #909090; }
+q { color: #767680; }
 span.tip_i { color: rgb(83,79,104); }
 ul { z-index: 99; }
 span.userInfo { z-index: 99; }
@@ -366,7 +414,7 @@ ul.secTab li a, ul.secTab li:first-child a { padding: 5px 10px; text-shadow: non
 a.selected { box-shadow: none; padding: 4px 9px 4.5px 9px !important; }
 ul.secTab li a:hover { box-shadow: none; }
 div.menu_inner { box-shadow: none; }
-#navMenuNeue li a.focus { color: rgb(204,129,146); }
+#navMenuNeue li a.focus { color: var(--primary-color, rgb(204,129,146)); }
 a.btnBlue, a.btnBlueSmall { color: black; padding: 10px 20px; border-radius: 5px; }
 #rakuen_infobox { width: 200px; }
 #headerProfile h1 span { color: black; }
@@ -378,7 +426,9 @@ ul#infobox li .tag { border: 1px solid #0084B4; }
 a.cover:hover img.cover { padding: 0; }
 
 /* ========== 小组标题居中 ========== */
-.columns.clearit { background: rgba(255,255,255,.3); }
+/* .columns.clearit 原为 rgba(255,255,255,.3) 硬编码：它在 div#main 玻璃底板之上又叠一层浓淡
+   与周边区域不同的白雾，是"同一网页不同区域玻璃不一致"的来源之一，归一为透明 */
+.columns.clearit { background: rgba(255,255,255,var(--0)); }
 
 /* ========== 封面 hover 放大（条目页） ========== */
 img.cover:hover { height: 95%; width: 95%; box-shadow: 0 0 12px black; transition: all .5s; }
@@ -424,7 +474,7 @@ ul.wikiScrollBlock { border-radius: 10px; }
 .line_odd, .line_even { background: rgba(255,255,255,0); border: none; }
 #columnTimelineInnerB { background-color: rgba(255,255,255,0); }
 #columnTimelineInnerB div.TsukkmiBox { background: rgba(255,255,255,0); }
-ul.navTabs { background: rgba(255,255,255,.5) !important; border: none; }
+ul.navTabs { background: rgba(255,255,255,var(--0)) !important; border: none; }
 
 /* ========== 图片优化 ========== */
 .pictureFrameGroup .overlay { background: none; }
@@ -456,6 +506,80 @@ ul.coversSmall li { height: 140px; }
 .pictureFrameGroup .overlay { height: 103px; }
 .pictureFrameGroup .image img { height: 100% !important; }
 `;
+    // 将硬编码白色玻璃底色替换为 CSS 变量（--bgc-glass 在关灯时切换为深色）
+    css = css.replaceAll('rgba(255,255,255,', 'rgba(var(--bgc-glass),');
+    // 关灯模式额外覆盖（非 rgba 白色 + 文字/边框颜色适配）
+    css += `
+/* ==== 关灯模式覆盖 ==== */
+html.bgc-dark rect[data-count="0"] { fill: #2a2a32; }
+html.bgc-dark .tab_button { color: #ddd; }
+html.bgc-dark span.description, html.bgc-dark small.alarm { color: #ccc; }
+html.bgc-dark #headerProfile h1 span { color: #eee; }
+html.bgc-dark a.btnBlue, html.bgc-dark a.btnBlueSmall { color: #ddd; }
+html.bgc-dark ul.secTab li a.selected, html.bgc-dark ul.secTab li a.focus, html.bgc-dark ul.secTab li a:hover { color: #eee; }
+html.bgc-dark .ui-state-default, html.bgc-dark .ui-widget-content .ui-state-default { background: #444; border-color: #888; }
+html.bgc-dark div.ui-widget-content { border-color: #555; }
+html.bgc-dark #searchHomeBox ul.cat li a, html.bgc-dark .indexCatBox ul.cat li a { color: #aaa !important; }
+html.bgc-dark div.grp_box { border-color: #3a3a44; }
+html.bgc-dark #comment_list div.row_reply:first-child, html.bgc-dark #comment_list div.row_reply:last-child { border-color: #3a3a44; }
+html.bgc-dark blockquote.intro { border-color: #3a3a44; }
+html.bgc-dark a.tip_i, html.bgc-dark a.tip_i:link, html.bgc-dark a.tip_i:visited, html.bgc-dark a.tip_i:active, html.bgc-dark a.reply-plus-one { color: #999; }
+html.bgc-dark a.reply-plus-one { border-color: #999; }
+html.bgc-dark div.re_info, html.bgc-dark div.re_info a, html.bgc-dark .tip_j { color: #999; }
+html.bgc-dark span.tip_i { color: #a09cbc; }
+html.bgc-dark q { color: #999; }
+html.bgc-dark small.grey { color: #8a8a92; }
+html.bgc-dark #header > small.grey { color: #aaa; }
+html.bgc-dark .indexCatBox ul.cat li a.add { color: #999; }
+html.bgc-dark #navMenuNeue li a.focus { color: rgb(220,150,170); }
+html.bgc-dark ul.line_list li.cat::after { background-color: rgba(255,255,255,.15); }
+html.bgc-dark a.selected { border-color: #555 !important; }
+html.bgc-dark #anime-schedule-container { color: #ccc; }
+/* 配置面板 & 齿轮按钮暗色 */
+html.bgc-dark #bg-custom-btn { background: rgba(50,50,60,.9) !important; color: #bbb !important; border-color: #555 !important; }
+html.bgc-dark #bg-custom-panel { background: #2a2a34 !important; color: #ccc !important; box-shadow: 0 8px 32px rgba(0,0,0,.5) !important; }
+html.bgc-dark #bg-custom-panel .bg-popup-title { color: #eee !important; }
+html.bgc-dark #bg-custom-panel .bg-mode-btn { border-color: #555 !important; }
+html.bgc-dark #bg-custom-panel input[type="text"], html.bgc-dark #bg-custom-panel select { background: #333 !important; color: #ddd !important; border-color: #555 !important; }
+html.bgc-dark #bg-custom-panel #bg-btn-reset { background: #3a3a44 !important; color: #aaa !important; border-color: #555 !important; }
+html.bgc-dark #bg-custom-panel .bg-hint { color: #888 !important; }
+html.bgc-dark #bg-custom-panel .bg-hint a { color: #e0a050 !important; }
+
+/* ==== 关灯毛玻璃 ====
+   主内容容器加模糊+提饱和，让透出的背景图柔化成发光磨砂，而非平的深色块；
+   saturate 抵消深色叠层带来的发暗/发灰，使色彩「活」起来。
+   模糊度/饱和度通过 --bgc-blur / --bgc-saturate 变量统一，与亮色模式共享同一套参数。
+
+   层叠策略（以讨论页为例）：
+     div#main [blur]              ← 第 1 层：全站内容底板
+       .mainWrapper (无 blur)     ← 仅极淡底色，不加模糊，避免多余层
+         div.row_reply [blur]     ← 第 2 层：回帖卡片自带模糊
+         div.SidePanel  [blur]    ← 第 2 层：侧栏自带模糊（base CSS 已有）
+         blockquote.intro [blur]  ← 第 2 层：简介卡片
+   回帖卡片与侧栏同为 2 层模糊，视觉和谐统一；
+   卡片间的间隙仅 1 层模糊，形成自然层次感。 */
+html.bgc-dark div#main,
+html.bgc-dark #headerNeue2,
+html.bgc-dark #footer,
+html.bgc-dark #bgm-calendar-timeline,
+html.bgc-dark #bangumi-calendar-timeline-no-api {
+  -webkit-backdrop-filter: blur(var(--bgc-blur)) saturate(var(--bgc-saturate));
+  backdrop-filter: blur(var(--bgc-blur)) saturate(var(--bgc-saturate));
+}
+/* 关灯正文光晕：深色底上浅色文字加暗色微光晕，抵消背景图亮部对文字的干扰（与亮色 rgba 白光晕对应） */
+html.bgc-dark div#main { text-shadow: 0 1px 1px rgba(0,0,0,.45); }
+/* 内容卡片级模糊：回帖、简介在 div#main 模糊之上再加一层，
+   与 SidePanel（base CSS 已有 backdrop-filter）保持相同层数，和谐统一 */
+html.bgc-dark div.row_reply,
+html.bgc-dark blockquote.intro {
+  -webkit-backdrop-filter: blur(var(--bgc-blur)) saturate(var(--bgc-saturate));
+  backdrop-filter: blur(var(--bgc-blur)) saturate(var(--bgc-saturate));
+}
+/* 注：左侧中间容器透明化、#prgManager 去模糊、.day-block/.day-label 关灯覆盖
+   已移至亮色基础规则中统一处理（中间层 var(--0) 透明 + #prgManager 无 backdrop-filter），
+   bangumi_week_blocks 的 .day-block/.day-label 通过 --bgc-glass 变量自动适配关灯色，无需 !important 覆盖。 */
+`;
+    return css;
   }
 
   // ==================== 工具函数 ====================
@@ -474,9 +598,143 @@ ul.coversSmall li { height: 140px; }
     document.head.appendChild(style);
   }
 
-  // ==================== 交互式配置面板 UI ====================
-  function createConfigUI() {
-    // 浮动齿轮按钮
+  // ==================== 深色模式（与站点原生 html[data-theme] 双向同步） ====================
+  // 站点主题由 chiiLib.ukagaka 管理：cookie 记忆用户选择，否则跟随系统 prefers-color-scheme
+  //（并实时响应系统切换），统一通过 html[data-theme="dark|light"] 应用官方深色 CSS，
+  // 右下角工具条自带「关灯/开灯」按钮（#toggleTheme）。
+  // 本脚本策略：
+  //   pref='auto'（默认）→ 跟随站点属性：原生开关、系统偏好变化都自动跟随；
+  //   pref='on'/'off'    → 初始强制深/浅色；若用户点了站点自带开关，则采纳为新偏好，
+  //                        避免脚本与站点互相拉扯（旧版会把站点开关改回 light，属于 bug）。
+  const DARK_MODE_KEY = 'bangumi-bg-custom-dark-mode';
+  let darkModePref = null;
+  try { darkModePref = JSON.parse(localStorage.getItem(DARK_MODE_KEY)); } catch (e) {}
+  // 合法值 on/off/auto；旧版把 auto 强制当 off 处理，现恢复 auto=跟随站点/系统
+  if (darkModePref !== 'on' && darkModePref !== 'off' && darkModePref !== 'auto') darkModePref = 'auto';
+
+  // 复刻站点 setTheme：data-theme-change="1" 触发官方 300ms 过渡，随后移除
+  function setSiteTheme(theme) {
+    const el = document.documentElement;
+    if (el.getAttribute('data-theme') === theme) return;
+    el.setAttribute('data-theme-change', '1');
+    el.setAttribute('data-theme', theme);
+    setTimeout(() => el.removeAttribute('data-theme-change'), 300);
+  }
+
+  // 站点原生深色判定：data-theme 优先，其余为无属性时的兜底
+  function detectSiteDark() {
+    const el = document.documentElement;
+    const t = el.getAttribute('data-theme');
+    if (t === 'dark') return true;
+    if (t === 'light') return false;
+    const dc = ['night', 'dark', 'lights-off', 'dark-mode', 'theme-dark', 'nightmode'];
+    for (const c of dc) {
+      if (el.classList.contains(c) || (document.body && document.body.classList.contains(c))) return true;
+    }
+    if (document.body) {
+      const m = getComputedStyle(document.body).backgroundColor.match(/rgba?\((\d+),\s*(\d+),\s*(\d+)/);
+      if (m && 0.299 * +m[1] + 0.587 * +m[2] + 0.114 * +m[3] < 80) return true;
+    }
+    try { if (window.matchMedia('(prefers-color-scheme: dark)').matches) return true; } catch (e) { /* ignore */ }
+    return false;
+  }
+
+  function applyDarkMode() {
+    const isDark = darkModePref === 'on' ? true
+      : darkModePref === 'off' ? false
+      : detectSiteDark();
+    document.documentElement.classList.toggle('bgc-dark', isDark);
+    // 同步站点原生主题属性：官方深色 CSS（正文/输入框/链接反色等）才能生效；
+    // auto 模式下属性归站点自己维护，仅在其缺失时补写
+    if (darkModePref !== 'auto' || !document.documentElement.getAttribute('data-theme')) {
+      setSiteTheme(isDark ? 'dark' : 'light');
+    }
+    // 同步站点「关灯/开灯」按钮文案
+    try {
+      if (window.chiiLib && chiiLib.ukagaka && typeof chiiLib.ukagaka.isDark === 'function') {
+        chiiLib.ukagaka.isDark(isDark);
+      }
+    } catch (e) { /* ignore */ }
+    return isDark;
+  }
+
+  function setDarkModePref(pref) {
+    darkModePref = pref;
+    localStorage.setItem(DARK_MODE_KEY, JSON.stringify(pref));
+    applyDarkMode();
+  }
+
+  function startDarkModeWatcher() {
+    applyDarkMode();
+    // 监听站点原生主题属性：auto 直接跟随；on/off 被站点开关改动时采纳为新偏好
+    new MutationObserver(() => {
+      const attr = document.documentElement.getAttribute('data-theme');
+      if (attr !== 'dark' && attr !== 'light') return;
+      const forced = darkModePref === 'on' ? 'dark' : darkModePref === 'off' ? 'light' : null;
+      if (forced && attr !== forced) {
+        setDarkModePref(attr); // 用户点了站点自带的「关灯/开灯」→ 采纳，不抢回
+      } else {
+        applyDarkMode();
+      }
+    }).observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme'] });
+    try {
+      window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', () => applyDarkMode());
+    } catch (e) { /* ignore */ }
+    // 其他标签页修改偏好时同步
+    window.addEventListener('storage', (e) => {
+      if (e.key === DARK_MODE_KEY) {
+        try {
+          const v = JSON.parse(e.newValue);
+          if (v === 'on' || v === 'off' || v === 'auto') darkModePref = v;
+        } catch (err) { /* ignore */ }
+        applyDarkMode();
+      }
+    });
+  }
+
+  // ==================== 触发入口：挂到 bangumi 右下角自带工具条 ====================
+  // bangumi 首页右下角有自带的悬浮工具条（含"个性化""隐藏"按钮）。
+  // 把"背景"入口直接挂进这个工具条，避免脚本再单独放一个浮动齿轮按钮。
+  function findPersonalizeLink() {
+    let link = document.querySelector('a[title="个性化"]');
+    if (!link) {
+      for (const a of document.querySelectorAll('a')) {
+        if (a.textContent.trim() === '个性化') { link = a; break; }
+      }
+    }
+    return link;
+  }
+
+  function mountToPersonalizeToolbar() {
+    const link = findPersonalizeLink();
+    if (!link) return null;
+    const li = link.closest('li');
+    const ul = li && li.parentElement;
+    if (!ul) return null;
+    const entry = document.createElement('a');
+    entry.href = 'javascript:void(0);';
+    entry.title = '背景美化设置';
+    entry.setAttribute('aria-label', '背景美化设置');
+    // 用「图片」符号代替文字，currentColor 自动跟随工具条主题色
+    entry.innerHTML =
+      '<svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" ' +
+      'fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" ' +
+      'style="display:inline-block;vertical-align:-2px;opacity:.8;transition:transform .25s ease,opacity .25s ease;">' +
+      '<rect x="3" y="3" width="18" height="18" rx="2.5" ry="2.5"/>' +
+      '<circle cx="8.5" cy="8.5" r="1.5"/>' +
+      '<path d="M21 15l-5-5L5 21"/>' +
+      '</svg>';
+    const icon = entry.querySelector('svg');
+    entry.addEventListener('mouseenter', () => { icon.style.transform = 'scale(1.25)'; icon.style.opacity = '1'; });
+    entry.addEventListener('mouseleave', () => { icon.style.transform = 'scale(1)'; icon.style.opacity = '.8'; });
+    const newLi = document.createElement('li');
+    newLi.appendChild(entry);
+    li.insertAdjacentElement('afterend', newLi);
+    return entry;
+  }
+
+  // 找不到工具条时的兜底浮动齿轮按钮
+  function createFallbackBtn() {
     const btn = document.createElement('div');
     btn.id = 'bg-custom-btn';
     btn.innerHTML = '⚙';
@@ -492,7 +750,12 @@ ul.coversSmall li { height: 140px; }
     });
     btn.onmouseenter = () => { btn.style.transform = 'scale(1.1)'; btn.style.boxShadow = '0 4px 12px rgba(0,0,0,.2)'; };
     btn.onmouseleave = () => { btn.style.transform = 'scale(1)'; btn.style.boxShadow = '0 2px 8px rgba(0,0,0,.15)'; };
+    document.body.appendChild(btn);
+    return btn;
+  }
 
+  // ==================== 交互式配置面板 UI ====================
+  function createConfigUI() {
     // 弹窗
     const panel = document.createElement('div');
     panel.id = 'bg-custom-panel';
@@ -577,8 +840,18 @@ ul.coversSmall li { height: 140px; }
 
     panel.innerHTML = `
       <div class="bg-popup" style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;">
-        <span style="font-size:16px;font-weight:600;color:#333;">Bangumi 背景设置</span>
+        <span class="bg-popup-title" style="font-size:16px;font-weight:600;color:#333;">Bangumi 背景设置</span>
         <span id="bg-panel-close" style="cursor:pointer;font-size:18px;color:#aaa;line-height:1;" title="关闭">✕</span>
+      </div>
+
+      <!-- 深色模式：自动=跟随站点原生开关/系统偏好 -->
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;padding:8px 10px;border-radius:8px;background:rgba(128,128,128,.08);">
+        <span style="font-size:13px;">🌙 深色模式</span>
+        <div style="display:flex;border-radius:6px;overflow:hidden;border:1px solid rgba(128,128,128,.3);">
+          <button id="bg-dark-auto" title="跟随站点右下角「关灯/开灯」开关与系统偏好" style="padding:4px 12px;font-size:12px;border:none;cursor:pointer;background:${darkModePref==='auto'?'#f0911e':'transparent'};color:${darkModePref==='auto'?'#fff':'inherit'};transition:.15s;">自动</button>
+          <button id="bg-dark-light" style="padding:4px 12px;font-size:12px;border:none;cursor:pointer;border-left:1px solid rgba(128,128,128,.3);background:${darkModePref==='off'?'#f0911e':'transparent'};color:${darkModePref==='off'?'#fff':'inherit'};transition:.15s;">亮色</button>
+          <button id="bg-dark-dark" style="padding:4px 12px;font-size:12px;border:none;cursor:pointer;border-left:1px solid rgba(128,128,128,.3);background:${darkModePref==='on'?'#f0911e':'transparent'};color:${darkModePref==='on'?'#fff':'inherit'};transition:.15s;">暗色</button>
+        </div>
       </div>
 
       <!-- 实时预览 -->
@@ -735,12 +1008,50 @@ ul.coversSmall li { height: 140px; }
       </div>
     `;
 
-    document.body.appendChild(btn);
     document.body.appendChild(panel);
 
+    // ===== 触发入口：优先挂到 bangumi 右下角自带的"个性化"工具条 =====
+    const togglePanel = () => { panel.style.display = panel.style.display === 'none' ? 'block' : 'none'; };
+    let trigger = mountToPersonalizeToolbar();
+    if (trigger) {
+      trigger.onclick = togglePanel;
+    } else {
+      // 工具条可能稍后才渲染出来：先放兜底齿轮按钮，并持续尝试挂载
+      trigger = createFallbackBtn();
+      trigger.onclick = togglePanel;
+      let attempts = 0;
+      const timer = setInterval(() => {
+        attempts++;
+        const mounted = mountToPersonalizeToolbar();
+        if (mounted) {
+          clearInterval(timer);
+          const fb = document.getElementById('bg-custom-btn');
+          if (fb) fb.remove();
+          trigger = mounted;
+          trigger.onclick = togglePanel;
+        } else if (attempts >= 10) {
+          clearInterval(timer);
+        }
+      }, 500);
+    }
+
     // ===== 事件绑定 =====
-    btn.onclick = () => { panel.style.display = panel.style.display === 'none' ? 'block' : 'none'; };
     panel.querySelector('#bg-panel-close').onclick = () => { panel.style.display = 'none'; };
+
+    // 深色模式控件（自动/亮色/暗色 三选一）
+    const darkAutoBtn = panel.querySelector('#bg-dark-auto');
+    const darkLightBtn = panel.querySelector('#bg-dark-light');
+    const darkDarkBtn = panel.querySelector('#bg-dark-dark');
+    function updateDarkBtns() {
+      const set = (el, on) => { el.style.background = on ? '#f0911e' : 'transparent'; el.style.color = on ? '#fff' : 'inherit'; };
+      set(darkAutoBtn, darkModePref === 'auto');
+      set(darkLightBtn, darkModePref === 'off');
+      set(darkDarkBtn, darkModePref === 'on');
+    }
+    darkAutoBtn.onclick = () => { setDarkModePref('auto'); updateDarkBtns(); };
+    darkLightBtn.onclick = () => { setDarkModePref('off'); updateDarkBtns(); };
+    darkDarkBtn.onclick = () => { setDarkModePref('on'); updateDarkBtns(); };
+    applyDarkMode();
 
     const opacityInput = panel.querySelector('#bg-input-opacity');
     const opacityValEl = panel.querySelector('#bg-opacity-val');
@@ -912,8 +1223,10 @@ ul.coversSmall li { height: 140px; }
     };
 
     // 点击弹窗外关闭
+    // 注意：入口内是 SVG 图标，点击时 e.target 是 SVG 子元素而非 trigger 本身，
+    // 必须用 contains 判断，否则面板会被同帧关闭（表现为"按钮点不开"）
     document.addEventListener('click', (e) => {
-      if (panel.style.display === 'block' && !panel.contains(e.target) && e.target !== btn) {
+      if (panel.style.display === 'block' && !panel.contains(e.target) && !(trigger && trigger.contains(e.target))) {
         panel.style.display = 'none';
       }
     });
@@ -921,17 +1234,30 @@ ul.coversSmall li { height: 140px; }
 
   // ==================== 初始化（document-end: DOM 已就绪） ====================
   (async function init() {
-    // 随机模式：每次页面加载时自动拉取新随机图片
+    // 先注入 CSS：随机模式下沿用上次阅读保存的实际图片 URL，
+    // 毛玻璃与背景立即呈现，不被拉取新图的网络请求阻塞
+    injectCSS();
+    createConfigUI();
+    startDarkModeWatcher();
+
+    // 随机模式：后台拉取新随机图片，预加载完成后再热替换，
+    // 避免换图过程中出现白底/渐进渲染的割裂感
     if (getMode() === 'random') {
       const cat = getRandomCat();
       const realUrl = await fetchRandomUrl(cat);
       if (realUrl) {
+        await new Promise((resolve) => {
+          const img = new Image();
+          img.onload = resolve;
+          img.onerror = resolve;
+          img.src = realUrl;
+          setTimeout(resolve, 8000); // 兜底：图片挂起时不无限等待
+        });
         currentBg = `url("${realUrl}")`;
         addHistory(realUrl, cat);
         setBg(currentBg);
+        injectCSS();
       }
     }
-    injectCSS();
-    createConfigUI();
   })();
 })();

@@ -1,8 +1,8 @@
 // ==UserScript==
 // @name         节目按星期分组排序
 // @namespace    https://bgm.tv/user/640151
-// @version      1.0.0
-// @description  按星期分成七块显示，高亮当前日期（块式布局，去除竖条底色）
+// @version      1.3.0
+// @description  按星期分成七块显示，高亮当前日期（块式布局，去除竖条底色）；深色模式与站点原生 html[data-theme] 同步，玻璃参数与 bangumi_bg_custom 统一
 // @author       qbs(based on Xuefer's work, rewritten for new Bangumi layout)
 // @include      http://bangumi.tv/
 // @include      https://bangumi.tv/
@@ -18,10 +18,32 @@
   try {
     const style = document.createElement("style");
     style.textContent = `
-      .day-block { margin: 10px 0; border: 1px solid #e5e5e5; border-radius: 6px; overflow: hidden; }
-      .day-label { font-weight: bold; padding: 6px 10px; background: #f7f7f7; border-bottom: 1px solid #e5e5e5; }
-      .day-block.today { border-color: #f0911e; }
-      .day-block.today .day-label { background: #fff7e6; color: #f0911e; }
+      /* ---- 毛玻璃块 ----
+         使用 bangumi_bg_custom 注入的 CSS 变量（--bgc-glass / --bgc-blur / --bgc-saturate / --4 等），
+         带 fallback 值以在 bg_custom 未安装时独立运行。
+         当 bg_custom 存在时，--bgc-glass 在 html.bgc-dark 下自动切换为深色，
+         --bgc-blur / --bgc-saturate 统一模糊度，--4 等透明度变量跟随不透明度滑块，
+         从而与 SidePanel 等右侧面板保持完全一致的毛玻璃效果。 */
+      .day-block {
+        margin: 10px 0;
+        border: 1px solid rgba(var(--bgc-glass, 255,255,255), 0.35);
+        border-radius: 8px;
+        overflow: hidden;
+        background: rgba(var(--bgc-glass, 255,255,255), var(--4, 0.4));
+        -webkit-backdrop-filter: blur(var(--bgc-blur, 12px)) saturate(var(--bgc-saturate, 160%));
+        backdrop-filter: blur(var(--bgc-blur, 12px)) saturate(var(--bgc-saturate, 160%));
+      }
+      .day-label {
+        font-weight: bold;
+        padding: 6px 10px;
+        background: rgba(var(--bgc-glass, 255,255,255), var(--3, 0.3));
+        border-bottom: 1px solid rgba(0,0,0,0.06);
+        color: #333;
+        text-shadow: 0 1px 1px rgba(255,255,255,.3);
+      }
+      .day-block.today { border-color: var(--primary-color, rgba(240,145,30,0.6)); }
+      .day-block.today .day-label { background: rgba(240,145,30,0.14); color: var(--primary-color, #f0911e); }
+
       /* 块内条目用 flex 强制单列纵向排列，覆盖原页面 float/inline 两列样式 */
       .day-subjects {
         padding: 8px 10px;
@@ -40,6 +62,26 @@
         margin-left: 0 !important;
         margin-right: 0 !important;
       }
+
+      /* ==== 深色模式 ====
+         当 bangumi_bg_custom 存在时，--bgc-glass 在 html.bgc-dark 下自动变为 16,18,28，
+         .day-block / .day-label 的 background 和 backdrop-filter 已通过变量适配，无需重复声明。
+         以下仅保留：① 变量无法覆盖的属性（文字颜色、today 高亮）；
+         ② bangumi_bg_custom 不存在时的 fallback 关灯样式（通过 html.bgc-dark 选择器 + 深色 fallback 值）。 */
+      html.bgc-dark .day-block {
+        border-color: rgba(255,255,255,0.1);
+        background: rgba(var(--bgc-glass, 16,18,28), var(--4, 0.4));
+        -webkit-backdrop-filter: blur(var(--bgc-blur, 12px)) saturate(var(--bgc-saturate, 150%));
+        backdrop-filter: blur(var(--bgc-blur, 12px)) saturate(var(--bgc-saturate, 150%));
+      }
+      html.bgc-dark .day-label {
+        background: rgba(var(--bgc-glass, 16,18,28), var(--2, 0.2));
+        border-bottom-color: rgba(255,255,255,0.08);
+        color: #ddd;
+        text-shadow: 0 1px 1px rgba(0,0,0,.4);
+      }
+      html.bgc-dark .day-block.today { border-color: var(--primary-color, rgba(240,145,30,0.5)); }
+      html.bgc-dark .day-block.today .day-label { background: rgba(240,145,30,0.1); color: var(--primary-color, #f0911e); }
     `;
     (document.head || document.documentElement).appendChild(style);
   } catch (e) { /* ignore */ }
@@ -188,6 +230,61 @@
     });
   }
 
+  // -------------------- 深色模式检测（与 bangumi_bg_custom 共用同一套语义） --------------------
+  // 优先级：共享偏好('on'/'off') > 站点原生 html[data-theme]（右下角「关灯」/系统偏好） >
+  // 旧式深色 class > body 亮度 > 系统 prefers-color-scheme。
+  // 旧版问题：① 不认 data-theme；② 判定结果与 bg_custom 不一致时会把 bg_custom 刚加上的
+  // bgc-dark 类又摘掉（首页深色模式"闪回亮色"的直接原因），现两边判定逻辑完全一致，不再互踢。
+  const DARK_MODE_KEY = 'bangumi-bg-custom-dark-mode';
+  function readDarkPref() {
+    try {
+      const v = JSON.parse(localStorage.getItem(DARK_MODE_KEY));
+      return v === 'on' || v === 'off' ? v : null;
+    } catch (e) { return null; }
+  }
+  function siteNativeDark() {
+    const el = document.documentElement;
+    const t = el.getAttribute('data-theme');
+    if (t === 'dark') return true;
+    if (t === 'light') return false;
+    const dc = ['night','dark','lights-off','dark-mode','theme-dark','nightmode'];
+    for (const c of dc) { if (el.classList.contains(c) || (document.body && document.body.classList.contains(c))) return true; }
+    if (document.body) {
+      const m = getComputedStyle(document.body).backgroundColor.match(/rgba?\((\d+),\s*(\d+),\s*(\d+)/);
+      if (m && 0.299*+m[1] + 0.587*+m[2] + 0.114*+m[3] < 80) return true;
+    }
+    try { if (window.matchMedia('(prefers-color-scheme: dark)').matches) return true; } catch (e) {}
+    return false;
+  }
+  // bg_custom 未安装时由本脚本代写站点原生主题属性，官方深色 CSS（正文/输入框反色）才会生效；
+  // bg_custom 已安装则交还给它管理，避免两边抢写
+  function syncSiteTheme(isDark) {
+    if (document.getElementById('bangumi-bg-custom-style')) return;
+    const el = document.documentElement;
+    const target = isDark ? 'dark' : 'light';
+    if (el.getAttribute('data-theme') === target) return;
+    el.setAttribute('data-theme-change', '1');
+    el.setAttribute('data-theme', target);
+    setTimeout(() => el.removeAttribute('data-theme-change'), 300);
+  }
+  function applyDark() {
+    const pref = readDarkPref();
+    const isDark = pref === 'on' ? true : pref === 'off' ? false : siteNativeDark();
+    document.documentElement.classList.toggle('bgc-dark', isDark);
+    syncSiteTheme(isDark);
+  }
+  function watchDark() {
+    applyDark();
+    const obs = new MutationObserver(applyDark);
+    obs.observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme','class'] });
+    if (document.body) obs.observe(document.body, { attributes: true, attributeFilter: ['class','style'] });
+    try { window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', applyDark); } catch (e) {}
+    setInterval(applyDark, 2000);
+  }
+
   // sort_group_main.ts
-  waitLoad().then(bangumiSortGroup).catch(console.error);
+  // 深色检测立即启动（旧版等排序完成才启动，期间深色不生效）；
+  // 排序仍等待页面依赖（jQuery/#subject_prg_content/cluetip）就绪
+  watchDark();
+  waitLoad().then(() => { bangumiSortGroup(); }).catch(console.error);
 })();
