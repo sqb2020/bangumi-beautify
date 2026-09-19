@@ -2,7 +2,7 @@
 // @name         Bangumi 每日放送 · 时间轴
 // @name:zh-CN   Bangumi 每日放送 · 时间轴
 // @namespace    https://bangumi.tv/
-// @version      1.2.0
+// @version      1.2.1
 // @description  把 /calendar 的密集 7 列网格替换为按天分列的时间轴视图：每天显示当天放送的剧集（封面+集数+标题），今天高亮，支持左右切换日期；深色模式与站点原生 html[data-theme] 同步，玻璃参数与 bangumi_bg_custom 统一
 // @description:zh-CN 把 /calendar 的密集 7 列网格替换为按天分列的时间轴视图；深色与站点原生开关同步，玻璃统一
 // @author       qbs
@@ -123,13 +123,13 @@
         --b4: ${a(4)}; --b5: ${a(5)}; --b6: ${a(6)}; --b7: ${a(7)}; --b8: ${a(8)}; --b9: ${a(9)};
       }
 
-      /* 全屏背景图 */
+      /* 全屏背景图（z-index 低于 -2：站点相册/封面候选图原生在 z-index:-2，背景层 -1 会盖住它们） */
       html::after {
         content: ''; height: 100%; width: 100%;
         position: fixed; top: 0; left: 0; opacity: 0.75;
         background: var(--bg-custom);
         background-size: cover;
-        z-index: -1;
+        z-index: -3;
       }
 
       /* ==== 玻璃统一：模糊/饱和一律走 --bgc-blur / --bgc-saturate（旧版 4px/3px、

@@ -2,7 +2,7 @@
 // @name         Bangumi 每日放送 · 时间轴 (No API)
 // @name:zh-CN   Bangumi 每日放送 · 时间轴 (No API)
 // @namespace    https://bangumi.tv/
-// @version      1.3.0
+// @version      1.3.1
 // @description  把 /calendar 的密集 7 列网格替换为按天分列的时间轴视图。纯 DOM 提取，不调 API，刷新即显示；深色模式与站点原生 html[data-theme] 同步，玻璃参数与 bangumi_bg_custom 统一
 // @description:zh-CN 纯 DOM 提取的时间轴视图，不调 API；深色与站点原生开关同步，玻璃统一
 // @author       qbs
@@ -123,13 +123,13 @@
         --b4: ${a(4)}; --b5: ${a(5)}; --b6: ${a(6)}; --b7: ${a(7)}; --b8: ${a(8)}; --b9: ${a(9)};
       }
 
-      /* 全屏背景图 */
+      /* 全屏背景图（z-index 低于 -2：站点相册/封面候选图原生在 z-index:-2，背景层 -1 会盖住它们） */
       html::after {
         content: ''; height: 100%; width: 100%;
         position: fixed; top: 0; left: 0; opacity: 0.75;
         background: var(--bg-custom);
         background-size: cover;
-        z-index: -1;
+        z-index: -3;
       }
 
       /* ==== 玻璃统一：模糊/饱和一律走 --bgc-blur / --bgc-saturate（旧版这里 4px/3px、

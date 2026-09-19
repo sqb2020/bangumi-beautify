@@ -2,7 +2,7 @@
 // @name         Bangumi 自定义背景与毛玻璃
 // @name:zh-CN   Bangumi 自定义背景与毛玻璃
 // @namespace    https://bgm.tv/
-// @version      1.10.0
+// @version      1.0.3
 // @description  自定义 bgm.tv 全站背景图片/颜色/渐变，可调透明度实现毛玻璃效果，头部玻璃浓度可调；与站点原生深色模式（html[data-theme]）双向同步，全区域统一玻璃参数。基于 rabbitohh 的 bangumi-css 项目改造，适配油猴和超合金组件
 // @description:zh-CN 自定义 bgm.tv 全站背景+毛玻璃（头部浓度可调）；深色模式与站点原生开关互通，玻璃效果全区域统一；支持油猴和超合金组件
 // @author       qbs (based on rabbitohh's bangumi-css)
@@ -121,7 +121,10 @@ html.bgc-dark {
   color-scheme: dark;
 }
 
-/* ==== 背景图片（全站） ==== */
+/* ==== 背景图片（全站） ====
+   z-index 必须低于 -2：站点的相册/待选封面（ul.photoList 瀑布流等）原生把图片放在
+   position:relative + z-index:-2，背景层若是 -1 会恰好压在它们上面，把照片蒙成一层雾。
+   -3 保证背景层位于所有站点内容之下 */
 html::after {
   content: '';
   height: 100%; width: 100%;
@@ -129,7 +132,7 @@ html::after {
   opacity: 0.75;
   background: var(--bg-custom);
   background-size: cover;
-  z-index: -1;
+  z-index: -3;
 }
 
 /* ==== 光标操作：黑条展开 ==== */
@@ -291,7 +294,8 @@ input.btnPink, input.btnGray { background: #ff4a5952; }
 #footer { background: rgba(255,255,255,var(--4)); }
 .temples.tab_page_item.tab_page_item_0 { background: rgba(255,255,255,var(--3)); }
 #headerSubject { background: rgba(255,255,255,var(--2)); }
-.subject_section.clearit { background: rgba(255,255,255,var(--3)); }
+/* 角色介绍板块：旧版给了 var(--3) 白底，与「关联条目」「喜欢的会员」(纯透明)不一致，已归一为透明 */
+.subject_section.clearit { background: rgba(var(--bgc-glass),var(--0)); }
 tbody { background: rgba(255,255,255,var(--0)); }
 hr.board, div#collect_title, #ChartWarpper .chart_desc { background: rgba(255,255,255,var(--0)); }
 a.btnGreenSmall.rr { background: rgba(30,181,176,var(--45)); }
@@ -463,6 +467,18 @@ a.cover:hover img.cover { padding: 0; }
 #headerSubject { background: rgba(var(--bgc-glass), var(--2)); }
 #headerSubject div.subjectNav { background: rgba(var(--bgc-glass), var(--0)); }
 div#footer ul#footerLinks { background: rgba(var(--bgc-glass), var(--6)); }
+/* 「大家将 xxx 标注为」板块：纯透明会与上方简介连成一片，给一层淡底色区分 */
+div.subject_tag_section { background: rgba(var(--bgc-glass), var(--3)); border-radius: 10px; }
+/* 目录页「全部 n」分段按钮：去掉本插件的粉色叠层，保留站点原生单层圆角药丸 */
+#indexCatBox a.selected { background: none !important; }
+
+/* ==== 帖子/日志阅读区磨砂 ====
+   与时光机卡片观感对齐：楼主正文与回帖容器补上全站统一的磨砂
+   （旧版只有深色模式有这层模糊，浅色下阅读区比时光机「透」、显得不够毛） */
+.row_reply, blockquote.intro, .post_topic, #comment_list .row {
+  -webkit-backdrop-filter: blur(var(--bgc-blur)) saturate(var(--bgc-saturate));
+  backdrop-filter: blur(var(--bgc-blur)) saturate(var(--bgc-saturate));
+}
 
 /* ========== 小组标题居中 ========== */
 /* .columns.clearit 原为 rgba(255,255,255,.3) 硬编码：它在 div#main 玻璃底板之上又叠一层浓淡
@@ -625,6 +641,7 @@ html.bgc-dark div.SidePanel, html.bgc-dark div.SidePanelLow {
   border-color: rgba(255,255,255,.1);
 }
 html.bgc-dark #footer #footerLinks { background: rgba(var(--bgc-glass), var(--5)); }
+html.bgc-dark div.subject_tag_section { background: rgba(var(--bgc-glass), var(--3)); }
 /* 内容卡片级模糊：回帖、简介在 div#main 模糊之上再加一层，
    与 SidePanel（base CSS 已有 backdrop-filter）保持相同层数，和谐统一 */
 html.bgc-dark div.row_reply,
